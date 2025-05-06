@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package gts.trackmypath.ui.theme
 
 import androidx.compose.ui.graphics.Color
