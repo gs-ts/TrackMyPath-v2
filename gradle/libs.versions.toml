@@ -1,20 +1,24 @@
 [versions]
-agp = "8.9.2"
-kotlin = "2.0.21"
+agp = "8.10.1"
+kotlin = "2.1.21"
+ksp = "2.1.21-2.0.2"
 kotlin-coroutines = "1.10.2"
 kotlinx-serialization = "1.8.1"
 kotlinx-collections = "0.3.8"
 coreKtx = "1.16.0"
+lifecycleRuntimeKtx = "2.9.1"
+activityCompose = "1.10.1"
+composeMaterial3 = "1.4.0-alpha16"
+composeMaterialIconsExtended = "1.7.8"
+navigation3-core = "1.0.0-alpha04"
+lifecycle-viewmodel-navigation3 = "1.0.0-alpha02"
+material3-adaptive-navigation = "1.2.0-alpha07"
+room = "2.7.2"
+hilt = "2.56.2"
+hilt-navigation = "1.2.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-lifecycleRuntimeKtx = "2.8.7"
-activityCompose = "1.10.1"
-composeBom = "2025.04.01"
-ksp = "2.0.21-1.0.28"
-hilt = "2.56.1"
-hilt-navigation = "1.2.0"
-room = "2.7.1"
 detekt = "1.23.8"
 detekt-compose-rules = "0.4.22"
 
@@ -29,7 +33,8 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "composeMaterial3" }
+androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "composeMaterialIconsExtended" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
@@ -37,6 +42,10 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3-core" }
+androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3-core" }
+androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle-viewmodel-navigation3" }
+androidx-material3-adaptive-navigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation", version.ref = "material3-adaptive-navigation" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hilt-navigation" }
