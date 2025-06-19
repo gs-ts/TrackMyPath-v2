@@ -1,4 +1,4 @@
-@file:Suppress("MagicNumber")
+@file:Suppress("MagicNumber", "PropertyName")
 
 package gts.trackmypath.ui.theme
 

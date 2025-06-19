@@ -69,7 +69,7 @@ comments:
     active: false
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
   OutdatedDocumentation:
-    active: false
+    active: true
     matchTypeParameters: true
     matchDeclarationsOrder: true
     allowParamOnConstructorProperties: false
@@ -94,13 +94,13 @@ comments:
 complexity:
   active: true
   CognitiveComplexMethod:
-    active: false
+    active: true
     threshold: 15
   ComplexCondition:
     active: true
     threshold: 4
   ComplexInterface:
-    active: false
+    active: true
     threshold: 10
     includeStaticDeclarations: false
     includePrivateDeclarations: false
@@ -130,6 +130,7 @@ complexity:
   LongMethod:
     active: true
     threshold: 60
+    ignoreAnnotated: ['Composable']
   LongParameterList:
     active: true
     functionThreshold: 6
@@ -138,10 +139,10 @@ complexity:
     ignoreDataClasses: true
     ignoreAnnotatedParameter: []
   MethodOverloading:
-    active: false
+    active: true
     threshold: 6
   NamedArguments:
-    active: false
+    active: true
     threshold: 3
     ignoreArgumentsMatchingNames: false
   NestedBlockDepth:
@@ -193,7 +194,7 @@ coroutines:
   SleepInsteadOfDelay:
     active: true
   SuspendFunSwallowedCancellation:
-    active: false
+    active: true
   SuspendFunWithCoroutineScopeReceiver:
     active: false
   SuspendFunWithFlowReturnType:
@@ -308,7 +309,7 @@ exceptions:
 naming:
   active: true
   BooleanPropertyNaming:
-    active: false
+    active: true
     allowedPattern: '^(is|has|are)'
   ClassNaming:
     active: true
@@ -325,10 +326,10 @@ naming:
     active: false
     forbiddenName: []
   FunctionMaxLength:
-    active: false
+    active: true
     maximumFunctionNameLength: 30
   FunctionMinLength:
-    active: false
+    active: true
     minimumFunctionNameLength: 3
   FunctionNaming:
     active: true
@@ -345,7 +346,7 @@ naming:
     rootPackage: ''
     requireRootInDeclaration: false
   LambdaParameterNaming:
-    active: false
+    active: true
     parameterPattern: '[a-z][A-Za-z0-9]*|_'
   MatchingDeclarationName:
     active: true
@@ -382,10 +383,10 @@ naming:
     propertyPattern: '[A-Za-z][_A-Za-z0-9]*'
     privatePropertyPattern: '_?[A-Za-z][_A-Za-z0-9]*'
   VariableMaxLength:
-    active: false
+    active: true
     maximumVariableNameLength: 64
   VariableMinLength:
-    active: false
+    active: true
     minimumVariableNameLength: 1
   VariableNaming:
     active: true
@@ -490,11 +491,11 @@ potential-bugs:
   NullableToStringCall:
     active: false
   PropertyUsedBeforeDeclaration:
-    active: false
+    active: true
   UnconditionalJumpStatementInLoop:
     active: false
   UnnecessaryNotNullCheck:
-    active: false
+    active: true
   UnnecessaryNotNullOperator:
     active: true
   UnnecessarySafeCall:
@@ -518,9 +519,9 @@ potential-bugs:
 style:
   active: true
   AlsoCouldBeApply:
-    active: false
+    active: true
   BracesOnIfStatements:
-    active: false
+    active: true
     singleLine: 'never'
     multiLine: 'always'
   BracesOnWhenStatements:
@@ -533,21 +534,21 @@ style:
     active: false
     includeElvis: true
   ClassOrdering:
-    active: false
+    active: true
   CollapsibleIfStatements:
-    active: false
+    active: true
   DataClassContainsFunctions:
     active: false
     conversionFunctionPrefix:
       - 'to'
     allowOperators: false
   DataClassShouldBeImmutable:
-    active: false
+    active: true
   DestructuringDeclarationWithTooManyEntries:
     active: true
     maxDestructuringEntries: 3
   DoubleNegativeLambda:
-    active: false
+    active: true
     negativeFunctions:
       - reason: 'Use `takeIf` instead.'
         value: 'takeUnless'
@@ -709,7 +710,7 @@ style:
     max: 2
     excludeGuardClauses: false
   TrailingWhitespace:
-    active: false
+    active: true
   TrimMultilineRawString:
     active: false
     trimmingMethods:
@@ -736,14 +737,14 @@ style:
   UnnecessaryInnerClass:
     active: false
   UnnecessaryLet:
-    active: false
+    active: true
   UnnecessaryParentheses:
-    active: false
+    active: true
     allowForUnclearPrecedence: false
   UntilInsteadOfRangeTo:
     active: false
   UnusedImports:
-    active: false
+    active: true
   UnusedParameter:
     active: true
     allowedNames: 'ignored|expected'
@@ -770,9 +771,9 @@ style:
   UseEmptyCounterpart:
     active: false
   UseIfEmptyOrIfBlank:
-    active: false
+    active: true
   UseIfInsteadOfWhen:
-    active: false
+    active: true
     ignoreWhenContainingVariableDeclaration: false
   UseIsNullOrEmpty:
     active: true
@@ -785,7 +786,7 @@ style:
   UseRequireNotNull:
     active: true
   UseSumOfInsteadOfFlatMapSize:
-    active: false
+    active: true
   UselessCallOnNotNull:
     active: true
   UtilityClassWithPublicConstructor:
@@ -800,7 +801,7 @@ style:
 
 formatting:
   active: true
-  android: false
+  android: true
   autoCorrect: true
   AnnotationOnSeparateLine:
     active: true
@@ -822,7 +823,7 @@ formatting:
     autoCorrect: true
     indentSize: 4
   ClassName:
-    active: false
+    active: true
   CommentSpacing:
     active: true
     autoCorrect: true
@@ -855,7 +856,8 @@ formatting:
     active: true
     autoCorrect: true
   FunctionName:
-    active: false
+    active: true
+    ignoreAnnotated: ['Composable']
   FunctionReturnTypeSpacing:
     active: true
     autoCorrect: true
@@ -878,7 +880,7 @@ formatting:
     autoCorrect: true
     indentSize: 4
   IfElseWrapping:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   ImportOrdering:
@@ -983,7 +985,7 @@ formatting:
     indentSize: 4
     maxLineLength: 120
   PropertyName:
-    active: false
+    active: true
   PropertyWrapping:
     active: true
     autoCorrect: true
@@ -1035,27 +1037,27 @@ formatting:
     active: true
     autoCorrect: true
   StringTemplateIndent:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   TrailingCommaOnCallSite:
-    active: false
+    active: true
     autoCorrect: true
     useTrailingCommaOnCallSite: true
   TrailingCommaOnDeclarationSite:
-    active: false
+    active: true
     autoCorrect: true
     useTrailingCommaOnDeclarationSite: true
   TryCatchFinallySpacing:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   TypeArgumentListSpacing:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   TypeParameterListSpacing:
-    active: false
+    active: true
     autoCorrect: true
     indentSize: 4
   UnnecessaryParenthesesBeforeTrailingLambda:
@@ -1091,7 +1093,7 @@ Compose:
   LambdaParameterInRestartableEffect:
     active: true
   Material2:
-    active: false
+    active: true
   ModifierClickableOrder:
     active: true
   ModifierComposed:
@@ -1119,7 +1121,7 @@ Compose:
   PreviewAnnotationNaming:
     active: true
   PreviewNaming:
-    active: false
+    active: true
   PreviewPublic:
     active: true
   RememberContentMissing:
@@ -1127,7 +1129,7 @@ Compose:
   RememberMissing:
     active: true
   UnstableCollections:
-    active: false
+    active: true
   ViewModelForwarding:
     active: true
   ViewModelInjection:
