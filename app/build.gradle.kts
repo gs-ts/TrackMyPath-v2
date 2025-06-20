@@ -52,6 +52,8 @@ detekt {
 dependencies {
 
     implementation(libs.kotlin.coroutines)
+    implementation(libs.kotlinx.serialization)
+    implementation(libs.kotlinx.collections)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -68,8 +70,7 @@ dependencies {
     implementation(libs.androidx.material3.adaptive.navigation)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
-    implementation(libs.kotlinx.serialization)
-    implementation(libs.kotlinx.collections)
+    implementation(libs.accompanist.permissions)
 
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
