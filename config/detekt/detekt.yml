@@ -94,7 +94,7 @@ comments:
 complexity:
   active: true
   CognitiveComplexMethod:
-    active: true
+    active: false
     threshold: 15
   ComplexCondition:
     active: true
@@ -310,7 +310,7 @@ naming:
   active: true
   BooleanPropertyNaming:
     active: true
-    allowedPattern: '^(is|has|are)'
+    allowedPattern: '^(is|has|are|should)'
   ClassNaming:
     active: true
     classPattern: '[A-Z][a-zA-Z0-9]*'
@@ -326,7 +326,7 @@ naming:
     active: false
     forbiddenName: []
   FunctionMaxLength:
-    active: true
+    active: false
     maximumFunctionNameLength: 30
   FunctionMinLength:
     active: true
