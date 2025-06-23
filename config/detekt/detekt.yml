@@ -1045,7 +1045,7 @@ formatting:
     autoCorrect: false
     useTrailingCommaOnCallSite: true
   TrailingCommaOnDeclarationSite:
-    active: true
+    active: false
     autoCorrect: false
     useTrailingCommaOnDeclarationSite: true
   TryCatchFinallySpacing:
