@@ -985,7 +985,7 @@ formatting:
     indentSize: 4
     maxLineLength: 120
   PropertyName:
-    active: true
+    active: false
   PropertyWrapping:
     active: true
     autoCorrect: true
@@ -1041,12 +1041,12 @@ formatting:
     autoCorrect: true
     indentSize: 4
   TrailingCommaOnCallSite:
-    active: true
-    autoCorrect: true
+    active: false
+    autoCorrect: false
     useTrailingCommaOnCallSite: true
   TrailingCommaOnDeclarationSite:
     active: true
-    autoCorrect: true
+    autoCorrect: false
     useTrailingCommaOnDeclarationSite: true
   TryCatchFinallySpacing:
     active: true
