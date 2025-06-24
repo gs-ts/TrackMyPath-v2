@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.secrets.gradle.plugin)
 }
 
 android {
@@ -36,8 +37,15 @@ android {
         jvmTarget = "17"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
+}
+
+// https://developers.google.com/maps/documentation/places/android-sdk/config
+secrets {
+    propertiesFileName = "secrets.properties"
+    defaultPropertiesFileName = "local.defaults.properties"
 }
 
 detekt {
@@ -71,6 +79,10 @@ dependencies {
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.accompanist.permissions)
+    implementation(libs.google.material)
+
+    implementation(libs.play.services.location)
+    implementation(libs.google.places)
 
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
