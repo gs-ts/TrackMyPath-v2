@@ -100,8 +100,8 @@ class LocationProvider @Inject constructor(
     }
 
     companion object {
-        private const val SMALLEST_DISPLACEMENT_100_METERS = 60F
-        private const val INTERVAL_TIME = 30
-        private const val FASTEST_INTERVAL_TIME = 10
+        private const val SMALLEST_DISPLACEMENT_100_METERS = 100F
+        private const val INTERVAL_TIME = 45
+        private const val FASTEST_INTERVAL_TIME = 15
     }
 }
