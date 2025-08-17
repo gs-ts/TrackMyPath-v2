@@ -9,6 +9,7 @@ import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
