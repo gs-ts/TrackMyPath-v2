@@ -2,6 +2,7 @@ package gts.trackmypath.ui.activepath
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -32,13 +35,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import gts.trackmypath.domain.Photo
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -46,6 +54,7 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     ActivePathContent(
+        photos = state.photos.toImmutableList(),
         trackingState = state.trackingState,
         onTrackPathClick = viewModel::onTrackPathClick,
     )
@@ -55,6 +64,7 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
 @Composable
 private fun ActivePathContent(
     modifier: Modifier = Modifier,
+    photos: ImmutableList<Photo>,
     trackingState: TrackingState,
     onTrackPathClick: () -> Unit = {},
 ) {
@@ -127,13 +137,31 @@ private fun ActivePathContent(
             }
         },
     ) { innerPadding ->
-        Column(
+        PhotoStream(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(12.dp),
-        ) {
-            Text("hi there!")
+            photos = photos
+        )
+    }
+}
+
+@Composable
+private fun PhotoStream(
+    modifier: Modifier = Modifier,
+    photos: ImmutableList<Photo>
+) {
+    LazyColumn(modifier = modifier) {
+        items(
+            items = photos,
+            key = { it.id }
+        ) { photo ->
+            Image(
+                bitmap = photo.bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
@@ -183,6 +211,7 @@ private fun LocationPermissionRequestDialog(
 @Composable
 private fun ActivePathPreview() {
     ActivePathContent(
-        trackingState = TrackingState.STOPPED,
+        photos = persistentListOf(),
+        trackingState = TrackingState.STOPPED
     )
 }
