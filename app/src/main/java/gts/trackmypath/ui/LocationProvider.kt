@@ -56,11 +56,11 @@ class LocationProvider @Inject constructor(
 
         Log.d("LocationProvider", "Starting location updates")
 
-        val initialLocation = getLastKnownLocation()
-        initialLocation?.let {
-            Log.d("LocationProvider", "Initial last location: ${it.latitude}, ${it.longitude}")
-            trySend(initialLocation)
-        }
+//        val initialLocation = getLastKnownLocation()
+//        initialLocation?.let {
+//            Log.d("LocationProvider", "Initial last location: ${it.latitude}, ${it.longitude}")
+//            trySend(initialLocation)
+//        }
 
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
