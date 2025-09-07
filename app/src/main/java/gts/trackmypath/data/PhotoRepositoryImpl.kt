@@ -6,6 +6,7 @@ import gts.trackmypath.domain.Photo
 import gts.trackmypath.domain.PhotoRepository
 import javax.inject.Inject
 
+@Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
 class PhotoRepositoryImpl @Inject constructor(
     private val googlePlacesClient: GooglePlacesClient
 ) : PhotoRepository {
@@ -15,9 +16,10 @@ class PhotoRepositoryImpl @Inject constructor(
 
         return if (places.isNotEmpty()) {
             val firstPlace = places.first()
+            Log.d("PhotoRepository", "firstPlace received: ${firstPlace.id}")
             firstPlace.id?.let { placeId ->
                 val bitmap = googlePlacesClient.fetchPhoto(
-                    photoMetadatas = places.first().photoMetadatas
+                    photoMetadatas = firstPlace.photoMetadatas
                 )
 
                 bitmap?.let {

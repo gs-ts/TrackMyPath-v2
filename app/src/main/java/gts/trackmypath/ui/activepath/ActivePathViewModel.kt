@@ -58,6 +58,7 @@ class ActivePathViewModel @Inject constructor(
             .locationFlow()
             .mapLatest { location ->
                 val photo = fetchPhotoForLocationUseCase(latLng = LatLng(location.latitude, location.longitude))
+                Log.d("ActivePathViewModel", "photo received: ${photo?.id}")
 
                 photo?.let {
                     _state.update { state ->
