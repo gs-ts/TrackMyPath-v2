@@ -1,7 +1,7 @@
 [versions]
-agp = "8.12.0"
-kotlin = "2.1.21"
-ksp = "2.1.21-2.0.2"
+agp = "8.13.0"
+kotlin = "2.2.10"
+ksp = "2.2.10-2.0.2"
 kotlin-coroutines = "1.10.2"
 kotlinx-serialization = "1.9.0"
 kotlinx-collections = "0.4.0"
@@ -9,16 +9,16 @@ play-services-location = "21.3.0"
 google-places = "4.4.1"
 secrets-gradle-plugin = "2.0.1"
 core-ktx = "1.17.0"
-lifecycle-runtime-ktx = "2.9.2"
+lifecycle-runtime-ktx = "2.9.3"
 activity-compose = "1.10.1"
-google-material = "1.12.0"
-compose-material3 = "1.4.0-beta02"
+google-material = "1.13.0"
+compose-material3 = "1.4.0-beta03"
 compose-material-icons-extended = "1.7.8"
 navigation3-core = "1.0.0-alpha07"
 lifecycle-viewmodel-navigation3 = "1.0.0-alpha04"
-material3-adaptive-navigation = "1.2.0-alpha11"
+material3-adaptive-navigation = "1.2.0-beta01"
 room = "2.7.2"
-hilt = "2.57"
+hilt = "2.57.1"
 hilt-navigation = "1.2.0"
 accompanist = "0.37.3"
 junit = "4.13.2"
@@ -30,6 +30,7 @@ detekt-compose-rules = "0.4.27"
 [libraries]
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlin-coroutines" }
 kotlin-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlin-coroutines" }
+kotlin-test-junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
 kotlinx-serialization = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-collections = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinx-collections" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
@@ -44,7 +45,7 @@ androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+#androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3-core" }
 androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3-core" }
