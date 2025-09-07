@@ -155,7 +155,7 @@ private fun PhotoStream(
     LazyColumn(modifier = modifier) {
         items(
             items = photos,
-            key = { it.id }
+            key = { photo -> photo.id }
         ) { photo ->
             Image(
                 bitmap = photo.bitmap.asImageBitmap(),

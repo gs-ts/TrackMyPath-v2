@@ -73,6 +73,12 @@ class ActivePathViewModel @Inject constructor(
     private fun stopLocationUpdates() {
         Log.d("ActivePathViewModel", "stop location updates")
         locationUpdatesJob?.cancel()
+        // clear list of photos
+        _state.update { state ->
+            state.copy(
+                photos = state.photos.clear()
+            )
+        }
     }
 
     data class State(
