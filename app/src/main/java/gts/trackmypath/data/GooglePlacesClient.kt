@@ -1,15 +1,15 @@
 package gts.trackmypath.data
 
-import android.graphics.Bitmap
+import android.net.Uri
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
-import com.google.android.libraries.places.api.net.FetchPhotoRequest
+import com.google.android.libraries.places.api.net.FetchResolvedPhotoUriRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.libraries.places.api.net.SearchNearbyRequest
-import com.google.android.libraries.places.api.net.kotlin.awaitFetchPhoto
+import com.google.android.libraries.places.api.net.kotlin.awaitFetchResolvedPhotoUri
 import com.google.android.libraries.places.api.net.kotlin.awaitSearchNearby
 import gts.trackmypath.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,7 +29,7 @@ class GooglePlacesClient @Inject constructor(
 
         val placeFields = listOf(
             Place.Field.ID,
-            Place.Field.NAME,
+            Place.Field.DISPLAY_NAME,
             Place.Field.PHOTO_METADATAS
         )
 
@@ -60,15 +60,15 @@ class GooglePlacesClient @Inject constructor(
 
         return try {
             withContext(ioDispatcher) {
-                val photoRequest = FetchPhotoRequest.builder(photoMetadatas[0])
+                val photoRequest = FetchResolvedPhotoUriRequest.builder(photoMetadatas[0])
 //            .setMaxWidth(500)
 //            .setMaxHeight(300)
                     .build()
 
-                placesClient.awaitFetchPhoto(
+                placesClient.awaitFetchResolvedPhotoUri(
                     photoMetadata = photoMetadatas[0],
                     actions = { photoRequest }
-                ).bitmap
+                ).uri
             }
         } catch (exception: Exception) {
             Log.e("GooglePlacesClient", "Error fetchPhoto", exception)

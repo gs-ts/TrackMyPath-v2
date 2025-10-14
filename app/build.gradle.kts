@@ -86,9 +86,12 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.accompanist.permissions)
     implementation(libs.google.material)
-
     implementation(libs.play.services.location)
     implementation(libs.google.places)
+    implementation(libs.androidx.lifecycle.service)
+
+    implementation(libs.coil3.compose)
+    implementation(libs.coil3.network)
 
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)

@@ -5,9 +5,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import androidx.navigation3.ui.rememberSceneSetupNavEntryDecorator
 import gts.trackmypath.ui.activepath.ActivePathScreen
 import gts.trackmypath.ui.pastpaths.PastPathsScreen
 import kotlinx.serialization.Serializable
@@ -25,8 +24,7 @@ fun NavigationHost() {
     NavDisplay(
         backStack = backStack,
         entryDecorators = listOf(
-            rememberSceneSetupNavEntryDecorator(),
-            rememberSavedStateNavEntryDecorator(),
+            rememberSaveableStateHolderNavEntryDecorator()
         ),
         entryProvider = { key ->
             when (key) {
