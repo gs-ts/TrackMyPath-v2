@@ -21,7 +21,7 @@ class GooglePlacesClient @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
 
-    suspend fun searchNearby(latLng: LatLng): List<Place> {
+    suspend fun searchNearbyPlaces(latLng: LatLng): List<Place> {
         val locationRestriction = CircularBounds.newInstance(
             latLng,
             DEFAULT_RADIUS_METERS
@@ -52,7 +52,7 @@ class GooglePlacesClient @Inject constructor(
         }
     }
 
-    suspend fun fetchPhoto(photoMetadatas: List<PhotoMetadata>): Bitmap? {
+    suspend fun fetchPhotoUri(photoMetadatas: List<PhotoMetadata>): Uri? {
         if (photoMetadatas.isEmpty()) {
             Log.e("GooglePlacesClient", "No photo metadata available")
             return null
