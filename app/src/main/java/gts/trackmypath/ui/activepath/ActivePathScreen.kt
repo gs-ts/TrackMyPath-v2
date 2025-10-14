@@ -35,14 +35,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import gts.trackmypath.domain.Photo
+import gts.trackmypath.domain.PhotoMetadata
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -64,7 +65,7 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
 @Composable
 private fun ActivePathContent(
     modifier: Modifier = Modifier,
-    photos: ImmutableList<Photo>,
+    photos: ImmutableList<PhotoMetadata>,
     trackingState: TrackingState,
     onTrackPathClick: () -> Unit = {},
 ) {
@@ -150,17 +151,19 @@ private fun ActivePathContent(
 @Composable
 private fun PhotoStream(
     modifier: Modifier = Modifier,
-    photos: ImmutableList<Photo>
+    photos: ImmutableList<PhotoMetadata>
 ) {
     LazyColumn(modifier = modifier) {
         items(
             items = photos,
             key = { photo -> photo.id }
         ) { photo ->
-            Image(
-                bitmap = photo.bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth()
+            AsyncImage(
+                model = photo.photoUri,
+                contentDescription = "image of pokemon",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+//                placeholder = painterResource(id = R.drawable.loading),
             )
         }
     }

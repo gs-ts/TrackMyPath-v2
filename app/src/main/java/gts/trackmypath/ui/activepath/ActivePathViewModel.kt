@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gts.trackmypath.domain.FetchPhotoForLocationUseCase
-import gts.trackmypath.domain.Photo
+import gts.trackmypath.domain.FetchPhotoMetadataForLocationUseCase
+import gts.trackmypath.domain.PhotoMetadata
 import gts.trackmypath.ui.LocationProvider
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import kotlinx.collections.immutable.PersistentList
@@ -25,7 +25,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ActivePathViewModel @Inject constructor(
     private val locationProvider: LocationProvider,
-    private val fetchPhotoForLocationUseCase: FetchPhotoForLocationUseCase
+    private val fetchPhotoMetadataForLocationUseCase: FetchPhotoMetadataForLocationUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(State())
@@ -57,7 +57,7 @@ class ActivePathViewModel @Inject constructor(
         locationUpdatesJob = locationProvider
             .locationFlow()
             .mapLatest { location ->
-                val photo = fetchPhotoForLocationUseCase(latLng = LatLng(location.latitude, location.longitude))
+                val photo = fetchPhotoMetadataForLocationUseCase(latLng = LatLng(location.latitude, location.longitude))
                 Log.d("ActivePathViewModel", "photo received: ${photo?.id}")
 
                 photo?.let {
@@ -83,7 +83,7 @@ class ActivePathViewModel @Inject constructor(
 
     data class State(
         val trackingState: TrackingState = TrackingState.STOPPED,
-        val photos: PersistentList<Photo> = persistentListOf()
+        val photos: PersistentList<PhotoMetadata> = persistentListOf()
     ) {
 
         enum class TrackingState {
