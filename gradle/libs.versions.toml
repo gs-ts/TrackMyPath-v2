@@ -12,8 +12,7 @@ core-ktx = "1.17.0"
 lifecycle-runtime-ktx = "2.10.0-alpha05"
 activity-compose = "1.11.0"
 google-material = "1.13.0"
-compose-material3 = "1.4.0"
-compose-material-icons-extended = "1.7.8"
+compose-material3 = "1.5.0-alpha06"
 navigation3-core = "1.0.0-alpha11"
 lifecycle-viewmodel-navigation3 = "2.10.0-alpha05"
 material3-adaptive-navigation = "1.2.0-rc01"
@@ -41,7 +40,6 @@ google-material = { group = "com.google.android.material", name = "material", ve
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "compose-material3" }
-androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose-material-icons-extended" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
