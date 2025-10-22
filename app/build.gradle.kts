@@ -46,6 +46,9 @@ android {
         buildConfig = true
         compose = true
     }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 // https://developers.google.com/maps/documentation/places/android-sdk/config
