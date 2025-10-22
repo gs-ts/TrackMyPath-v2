@@ -34,20 +34,20 @@ class ActivePathViewModel @Inject constructor(
     private var locationUpdatesJob: Job? = null
 
     fun onTrackPathClick() {
-        viewModelScope.launch {
-            _state.update { state ->
-                state.copy(
-                    trackingState = when (state.trackingState) {
-                        TrackingState.STOPPED -> {
-                            collectLocationUpdates()
-                            TrackingState.TRACKING
-                        }
-                        TrackingState.TRACKING -> {
-                            stopLocationUpdates()
-                            TrackingState.STOPPED
-                        }
-                    }
-                )
+        _state.update { state ->
+            when (state.trackingState) {
+                TrackingState.STOPPED -> {
+                    collectLocationUpdates()
+                    state.copy(trackingState = TrackingState.TRACKING)
+                }
+
+                TrackingState.TRACKING -> {
+                    stopLocationUpdates()
+                    state.copy(
+                        trackingState = TrackingState.STOPPED,
+                        photos = persistentListOf()
+                    )
+                }
             }
         }
     }
@@ -73,12 +73,6 @@ class ActivePathViewModel @Inject constructor(
     private fun stopLocationUpdates() {
         Log.d("ActivePathViewModel", "stop location updates")
         locationUpdatesJob?.cancel()
-        // clear list of photos
-        _state.update { state ->
-            state.copy(
-                photos = state.photos.clear()
-            )
-        }
     }
 
     data class State(

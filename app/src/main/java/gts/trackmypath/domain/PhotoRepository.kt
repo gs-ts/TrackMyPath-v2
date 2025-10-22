@@ -4,5 +4,5 @@ import com.google.android.gms.maps.model.LatLng
 
 interface PhotoRepository {
 
-    suspend fun fetchPhotoMetadataForLocation(latLng: LatLng): PhotoMetadata?
+    suspend fun fetchPhotoMetadataForLocation(latLng: LatLng): Result<PhotoMetadata>
 }

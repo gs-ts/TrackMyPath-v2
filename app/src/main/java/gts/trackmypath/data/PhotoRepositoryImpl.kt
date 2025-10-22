@@ -11,7 +11,7 @@ class PhotoRepositoryImpl @Inject constructor(
     private val googlePlacesClient: GooglePlacesClient
 ) : PhotoRepository {
 
-    override suspend fun fetchPhotoMetadataForLocation(latLng: LatLng): PhotoMetadata? {
+    override suspend fun fetchPhotoMetadataForLocation(latLng: LatLng): Result<PhotoMetadata> {
         val places = googlePlacesClient.searchNearbyPlaces(latLng)
 
         return if (places.isNotEmpty()) {
@@ -23,15 +23,18 @@ class PhotoRepositoryImpl @Inject constructor(
                 )
 
                 photoUri?.let {
-                    PhotoMetadata(
-                        id = placeId,
-                        photoUri = photoUri
+                    Result.success(
+                        PhotoMetadata(
+                            id = placeId,
+                            photoUri = photoUri
+                        )
                     )
-                }
-            }
+                } ?: Result.failure(Exception("No photo available"))
+            } ?: Result.failure(Exception("No first place available"))
         } else {
             Log.e("GooglePlacesClient", "No places available")
-            null
+            // TODO improve exceptions
+            Result.failure(Exception("No places available"))
         }
     }
 }
