@@ -6,8 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gts.trackmypath.domain.FetchPhotoMetadataForLocationUseCase
+import gts.trackmypath.domain.LocationHolder
 import gts.trackmypath.domain.PhotoMetadata
-import gts.trackmypath.data.LocationProvider
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
@@ -19,12 +19,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ActivePathViewModel @Inject constructor(
-    private val locationProvider: LocationProvider,
+    private val locationHolder: LocationHolder,
     private val fetchPhotoMetadataForLocationUseCase: FetchPhotoMetadataForLocationUseCase
 ) : ViewModel() {
 
@@ -54,20 +53,27 @@ class ActivePathViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun collectLocationUpdates() {
-        locationUpdatesJob = locationProvider
-            .locationFlow()
+        locationUpdatesJob = locationHolder
+            .locationFlow
             .mapLatest { location ->
-                val photo = fetchPhotoMetadataForLocationUseCase(latLng = LatLng(location.latitude, location.longitude))
-                Log.d("ActivePathViewModel", "photo received: ${photo?.id}")
-
-                photo?.let {
-                    _state.update { state ->
-                        state.copy(
-                            photos = state.photos.add(photo)
+                if (location != null) {
+                    fetchPhotoMetadataForLocationUseCase(
+                        latLng = LatLng(
+                            location.latitude,
+                            location.longitude
                         )
+                    ).onSuccess { photo ->
+                        Log.d("ActivePathViewModel", "photo received: ${photo.id}")
+                        _state.update { state ->
+                            state.copy(
+                                photos = state.photos.add(photo)
+                            )
+                        }
+                    }.onFailure {
+                        Log.e("ActivePathViewModel", "error fetching photo", it)
                     }
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope = viewModelScope)
     }
 
     private fun stopLocationUpdates() {

@@ -1,8 +1,12 @@
 package gts.trackmypath.ui.activepath
 
+import android.Manifest
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
-import androidx.compose.foundation.Image
+import android.Manifest.permission.POST_NOTIFICATIONS
+import android.content.Intent
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,11 +50,13 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
 import gts.trackmypath.domain.PhotoMetadata
+import gts.trackmypath.ui.LocationService
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ActivePathScreen(viewModel: ActivePathViewModel) {
@@ -62,6 +69,7 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
     )
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 private fun ActivePathContent(
@@ -70,12 +78,21 @@ private fun ActivePathContent(
     trackingState: TrackingState,
     onTrackPathClick: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     var shouldShowLocationPermissionRationaleRequestDialog by remember { mutableStateOf(false) }
 
+    val postNotificationPermission =
+        rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS)
+    LaunchedEffect(key1 = true) {
+        if (!postNotificationPermission.status.isGranted) {
+            postNotificationPermission.launchPermissionRequest()
+        }
+    }
+
     val locationPermissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION),
+        permissions = listOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, POST_NOTIFICATIONS),
     ) { permissions ->
-        if (permissions[ACCESS_FINE_LOCATION] == true) {
+        if (permissions[ACCESS_FINE_LOCATION] == true && permissions[POST_NOTIFICATIONS] == true) {
             onTrackPathClick()
         }
     }
@@ -90,6 +107,15 @@ private fun ActivePathContent(
                 shouldShowLocationPermissionRationaleRequestDialog = false
             },
         )
+    }
+
+    val locationService = remember { Intent(context, LocationService::class.java) }
+    LaunchedEffect(trackingState) {
+        if (trackingState == TrackingState.TRACKING) {
+            context.startService(locationService)
+        } else {
+            context.stopService(locationService)
+        }
     }
 
     Scaffold(
@@ -123,10 +149,8 @@ private fun ActivePathContent(
                 },
             ) {
                 val icon = if (trackingState == TrackingState.TRACKING) {
-                    context.startService(Intent(context, LocationService::class.java))
                     painterResource(R.drawable.stop_icon)
                 } else {
-                    context.stopService(Intent(context, LocationService::class.java))
                     painterResource(R.drawable.play_arrow_icon)
                 }
                 val contentDescription = if (trackingState == TrackingState.TRACKING) {
@@ -162,7 +186,7 @@ private fun PhotoStream(
             key = { photo -> photo.id }
         ) { photo ->
             AsyncImage(
-                model = photo.photoUri,
+                model = photo.photoUri.toString(),
                 contentDescription = "image of pokemon",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
@@ -212,6 +236,7 @@ private fun LocationPermissionRequestDialog(
     )
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalPermissionsApi::class)
 @Preview
 @Composable
