@@ -1,6 +1,5 @@
 package gts.trackmypath.data
 
-import android.net.Uri
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.CircularBounds
@@ -14,14 +13,23 @@ import com.google.android.libraries.places.api.net.kotlin.awaitSearchNearby
 import gts.trackmypath.di.IoDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
+import java.net.URI
+import java.net.URISyntaxException
 import javax.inject.Inject
 
-class GooglePlacesClient @Inject constructor(
-    private val placesClient: PlacesClient,
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
-) {
+interface GooglePlacesClient {
 
-    suspend fun searchNearbyPlaces(latLng: LatLng): List<Place> {
+    suspend fun searchNearbyPlaces(latLng: LatLng): List<Place>
+
+    suspend fun fetchPhotoUri(photoMetadatas: List<PhotoMetadata>): URI?
+}
+
+class GooglePlacesClientImpl @Inject constructor(
+    private val placesClient: PlacesClient,
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
+) : GooglePlacesClient {
+
+    override suspend fun searchNearbyPlaces(latLng: LatLng): List<Place> {
         val locationRestriction = CircularBounds.newInstance(
             latLng,
             DEFAULT_RADIUS_METERS
@@ -47,14 +55,15 @@ class GooglePlacesClient @Inject constructor(
                 ).places
             }
         } catch (exception: Exception) {
-            Log.e("GooglePlacesClient", "Error searchNearby", exception)
+            Log.e("GooglePlacesClientImpl", "Error searchNearby", exception)
             emptyList()
         }
     }
 
-    suspend fun fetchPhotoUri(photoMetadatas: List<PhotoMetadata>): Uri? {
+    @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+    override suspend fun fetchPhotoUri(photoMetadatas: List<PhotoMetadata>): URI? {
         if (photoMetadatas.isEmpty()) {
-            Log.e("GooglePlacesClient", "No photo metadata available")
+            Log.e("GooglePlacesClientImpl", "No photo metadata available")
             return null
         }
 
@@ -65,13 +74,17 @@ class GooglePlacesClient @Inject constructor(
 //            .setMaxHeight(300)
                     .build()
 
-                placesClient.awaitFetchResolvedPhotoUri(
+                val uri = placesClient.awaitFetchResolvedPhotoUri(
                     photoMetadata = photoMetadatas[0],
                     actions = { photoRequest }
                 ).uri
+                URI(uri.toString())
             }
+        } catch (uriSyntaxException: URISyntaxException) {
+            Log.e("GooglePlacesClientImpl", "Uri syntax error", uriSyntaxException)
+            null
         } catch (exception: Exception) {
-            Log.e("GooglePlacesClient", "Error fetchPhoto", exception)
+            Log.e("GooglePlacesClientImpl", "Error fetchPhoto", exception)
             null
         }
     }
