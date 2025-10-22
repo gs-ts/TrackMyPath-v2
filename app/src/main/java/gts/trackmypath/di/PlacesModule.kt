@@ -14,7 +14,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-class AppModule {
+class PlacesModule {
 
     private val placesApiKey = BuildConfig.PLACES_API_KEY
 
