@@ -31,6 +31,10 @@ class LocationProvider @Inject constructor(
     @ApplicationScope applicationScope: CoroutineScope
 ) {
 
+    init {
+        Log.d("LocationProvider", "Init $this")
+    }
+
     private val fusedLocationClient: FusedLocationProviderClient = LocationServices
         .getFusedLocationProviderClient(applicationContext)
 
@@ -48,7 +52,7 @@ class LocationProvider @Inject constructor(
 
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let {
-                    Log.d("LocationProvider", "New location: ${it.latitude}, ${it.longitude}")
+                    Log.d("LocationProvider", "onLocationResult: ${it.latitude}, ${it.longitude}")
                     trySend(it)
                 }
             }
