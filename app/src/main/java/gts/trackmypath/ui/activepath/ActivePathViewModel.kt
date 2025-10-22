@@ -7,7 +7,7 @@ import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gts.trackmypath.domain.FetchPhotoMetadataForLocationUseCase
 import gts.trackmypath.domain.PhotoMetadata
-import gts.trackmypath.ui.LocationProvider
+import gts.trackmypath.data.LocationProvider
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf

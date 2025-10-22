@@ -1,4 +1,4 @@
-package gts.trackmypath.ui
+package gts.trackmypath.data
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -78,7 +78,7 @@ class LocationProvider @Inject constructor(
     }.shareIn(
         applicationScope,
         replay = 0,
-        started = SharingStarted.WhileSubscribed(),
+        started = SharingStarted.Companion.WhileSubscribed(),
     )
 
     @SuppressLint("MissingPermission")
