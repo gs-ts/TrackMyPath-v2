@@ -76,8 +76,8 @@ class LocationProvider @Inject constructor(
         }
 
         awaitClose {
-            Log.d("LocationProvider", "Stopping location updates")
             fusedLocationClient.removeLocationUpdates(locationCallback)
+            Log.d("LocationProvider", "Location updates stopped")
         }
     }.shareIn(
         applicationScope,

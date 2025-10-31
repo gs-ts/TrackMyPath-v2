@@ -76,7 +76,7 @@ class LocationService : Service() {
     }
 
     override fun onDestroy() {
-        Log.d("LocationService", "stopService!")
+        Log.d("LocationService", "Stopping location service")
         locationUpdatesJob?.cancel()
         locationUpdatesJob = null
         super.onDestroy()

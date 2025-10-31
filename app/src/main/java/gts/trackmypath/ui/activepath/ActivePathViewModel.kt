@@ -77,7 +77,7 @@ class ActivePathViewModel @Inject constructor(
     }
 
     private fun stopLocationUpdates() {
-        Log.d("ActivePathViewModel", "stop location updates")
+        Log.d("ActivePathViewModel", "user clicked stop location updates")
         locationUpdatesJob?.cancel()
     }
 
