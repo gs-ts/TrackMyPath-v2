@@ -6,9 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gts.trackmypath.domain.FetchPhotoMetadataForLocationUseCase
-import gts.trackmypath.domain.LocationHolder
 import gts.trackmypath.domain.PhotoMetadata
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
+import gts.trackmypath.ui.service.ServiceEventMessenger
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,14 +16,16 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class ActivePathViewModel @Inject constructor(
-    private val locationHolder: LocationHolder,
+    private val serviceEventMessenger: ServiceEventMessenger,
     private val fetchPhotoMetadataForLocationUseCase: FetchPhotoMetadataForLocationUseCase
 ) : ViewModel() {
 
@@ -31,6 +33,10 @@ class ActivePathViewModel @Inject constructor(
     val state: StateFlow<State> = _state.asStateFlow()
 
     private var locationUpdatesJob: Job? = null
+
+    init {
+        observeServiceEvents()
+    }
 
     fun onTrackPathClick() {
         _state.update { state ->
@@ -53,7 +59,7 @@ class ActivePathViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun collectLocationUpdates() {
-        locationUpdatesJob = locationHolder
+        locationUpdatesJob = serviceEventMessenger
             .locationFlow
             .mapLatest { location ->
                 if (location != null) {
@@ -74,6 +80,26 @@ class ActivePathViewModel @Inject constructor(
                     }
                 }
             }.launchIn(scope = viewModelScope)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeServiceEvents() {
+        viewModelScope.launch {
+            serviceEventMessenger.serviceEvents
+                .collectLatest { serviceEvent ->
+                    when (serviceEvent) {
+                        ServiceEventMessenger.ServiceEvent.StopTracking -> {
+                            stopLocationUpdates()
+                            _state.update { state ->
+                                state.copy(
+                                    trackingState = TrackingState.STOPPED,
+                                    photos = persistentListOf()
+                                )
+                            }
+                        }
+                    }
+                }
+        }
     }
 
     private fun stopLocationUpdates() {

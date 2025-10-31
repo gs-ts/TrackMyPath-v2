@@ -1,12 +1,9 @@
 package gts.trackmypath.ui.activepath
 
-import android.Manifest
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.Intent
-import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,13 +47,12 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
 import gts.trackmypath.domain.PhotoMetadata
-import gts.trackmypath.ui.LocationService
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
+import gts.trackmypath.ui.service.LocationService
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ActivePathScreen(viewModel: ActivePathViewModel) {
@@ -69,7 +65,6 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
     )
 }
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 private fun ActivePathContent(
@@ -81,8 +76,7 @@ private fun ActivePathContent(
     val context = LocalContext.current
     var shouldShowLocationPermissionRationaleRequestDialog by remember { mutableStateOf(false) }
 
-    val postNotificationPermission =
-        rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS)
+    val postNotificationPermission = rememberPermissionState(permission = POST_NOTIFICATIONS)
     LaunchedEffect(key1 = true) {
         if (!postNotificationPermission.status.isGranted) {
             postNotificationPermission.launchPermissionRequest()
@@ -236,9 +230,8 @@ private fun LocationPermissionRequestDialog(
     )
 }
 
-@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalPermissionsApi::class)
-@Preview
+@Preview(showSystemUi = true)
 @Composable
 private fun ActivePathPreview() {
     ActivePathContent(
