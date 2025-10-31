@@ -5,7 +5,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_MUTABLE
 import android.app.Service
 import android.content.Intent
@@ -119,21 +118,11 @@ class LocationService : Service() {
             intent,
             FLAG_MUTABLE
         )
-        // The PendingIntent to launch activity.
-        val activityPendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            FLAG_IMMUTABLE
-        )
 
         val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .addAction(0, "notification_action_launch", activityPendingIntent)
-            .addAction(0, "notification_action_stop", servicePendingIntent)
-            .setContentTitle("notification_content_title")
-            .setContentText("notification_content_text")
+            .addAction(0, "Stop tracking", servicePendingIntent)
+            .setContentTitle("You are tracking your path")
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setPriority(1)
             .setOngoing(true)
 
         return builder.build()
