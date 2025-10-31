@@ -82,7 +82,6 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.material3.adaptive.navigation)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
