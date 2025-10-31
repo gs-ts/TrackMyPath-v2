@@ -1,11 +1,10 @@
-package gts.trackmypath.ui
+package gts.trackmypath.ui.service
 
-import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_MUTABLE
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
@@ -16,7 +15,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import gts.trackmypath.R
 import gts.trackmypath.data.LocationProvider
 import gts.trackmypath.di.ApplicationScope
-import gts.trackmypath.domain.LocationHolder
+import gts.trackmypath.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -35,29 +34,39 @@ class LocationService : Service() {
     lateinit var locationProvider: LocationProvider
 
     @Inject
-    lateinit var locationHolder: LocationHolder
-
-    private lateinit var notificationManager: NotificationManager
-
-    init {
-        Log.d("LocationService", "Init $this")
-    }
+    lateinit var serviceEventMessenger: ServiceEventMessenger
 
     private var locationUpdatesJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
-        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        Log.d("LocationService", "onCreate $this")
+
         createNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        checkPermissions()
-        startForeground(NOTIFICATION_ID, getNotification())
-        if (locationUpdatesJob == null) {
-            collectLocationUpdates()
+        if (intent?.action == ACTION_STOP_SERVICE) {
+            serviceEventMessenger.sendEvent(serviceEvent = ServiceEventMessenger.ServiceEvent.StopTracking)
+            stopSelf()
+            return START_NOT_STICKY
         }
+
+        checkPermissions()
+        startForegroundLocationService()
+
         return START_NOT_STICKY // Tells the system not to recreate the service after it's been killed.
+    }
+
+    private fun startForegroundLocationService() {
+        try {
+            startForeground(NOTIFICATION_ID, getServiceNotification())
+            if (locationUpdatesJob == null) {
+                collectLocationUpdates()
+            }
+        } catch (exception: Exception) {
+            Log.e("LocationService", "Failed to start foreground service", exception)
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -66,7 +75,7 @@ class LocationService : Service() {
             .locationFlow()
             .mapLatest { location ->
                 Log.d("LocationService", "New location received: $location")
-                locationHolder.updateLocation(location)
+                serviceEventMessenger.updateLocation(location)
             }
             .launchIn(scope = applicationScope)
     }
@@ -83,7 +92,10 @@ class LocationService : Service() {
     }
 
     private fun checkPermissions() {
-        val fineLocationPermission = PermissionChecker.checkSelfPermission(this, ACCESS_FINE_LOCATION)
+        val fineLocationPermission = PermissionChecker.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
         if (fineLocationPermission != PermissionChecker.PERMISSION_GRANTED) {
             stopSelf() // TODO inform user?
         }
@@ -100,29 +112,41 @@ class LocationService : Service() {
 
     private fun createNotificationChannel() {
         val importance = NotificationManager.IMPORTANCE_DEFAULT
-        val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, NOTIFICATION_CHANNEL_NAME, importance).apply {
-            description = "something..."
-        }
+        val channel = NotificationChannel(
+            NOTIFICATION_CHANNEL_ID,
+            NOTIFICATION_CHANNEL_NAME,
+            importance
+        )
         val notificationManager: NotificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
 
-    private fun getNotification(): Notification {
-        val intent = Intent(this, LocationService::class.java)
-        // Extra to help us figure out if we arrived in onStartCommand via the notification or not.
-        intent.putExtra("started_from_notification", true)
-        // The PendingIntent that leads to a call to onStartCommand() in this service.
-        val servicePendingIntent = PendingIntent.getService(
+    private fun getServiceNotification(): Notification {
+        val stopSelfIntent = Intent(this, LocationService::class.java).apply {
+            action = ACTION_STOP_SERVICE
+        }
+        val stopSelfPendingIntent = PendingIntent.getService(
             this,
             0,
-            intent,
-            FLAG_MUTABLE
+            stopSelfIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        // The pending intent that leads to a call to the activity.
+        val activityPendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .addAction(0, "Stop tracking", servicePendingIntent)
             .setContentTitle("You are tracking your path")
+            .addAction(0, "Stop tracking", stopSelfPendingIntent)
             .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(activityPendingIntent)
+            .setColorized(true)
             .setOngoing(true)
 
         return builder.build()
@@ -130,7 +154,8 @@ class LocationService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1
-        private const val NOTIFICATION_CHANNEL_ID = "track_my_path_notification_channel"
-        private const val NOTIFICATION_CHANNEL_NAME = "track my path"
+        private const val NOTIFICATION_CHANNEL_ID = "track_my_path_notification_id"
+        private const val NOTIFICATION_CHANNEL_NAME = "track_my_path_notification _channel"
+        const val ACTION_STOP_SERVICE = "stop_service_action"
     }
 }
