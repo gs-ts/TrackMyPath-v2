@@ -33,7 +33,11 @@ class PhotoRepositoryTest {
             val result = photoRepository.fetchPhotoMetadataForLocation(LatLng(1.0, 1.0))
 
             assertTrue(actual = result.isSuccess)
-            assertEquals(result.getOrNull()?.id, "101")
+
+            assertEquals(
+                expected = "101",
+                actual = result.getOrNull()?.id
+            )
         }
 }
 
@@ -69,5 +73,4 @@ internal class GooglePlacesClientFake() : GooglePlacesClient {
     override suspend fun fetchPhotoUri(photoMetadatas: List<PhotoMetadata>): URI? {
         return URI(photoMetadatas.first().authorAttributions?.asList()?.first()?.photoUri)
     }
-
 }
