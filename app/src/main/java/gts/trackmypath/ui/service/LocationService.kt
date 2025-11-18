@@ -34,7 +34,7 @@ class LocationService : Service() {
     lateinit var locationProvider: LocationProvider
 
     @Inject
-    lateinit var serviceEventMessenger: ServiceEventMessenger
+    lateinit var serviceStateHolder: ServiceStateHolder
 
     private var locationUpdatesJob: Job? = null
 
@@ -46,16 +46,18 @@ class LocationService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP_SERVICE) {
-            serviceEventMessenger.sendEvent(serviceEvent = ServiceEventMessenger.ServiceEvent.StopTracking)
+        super.onStartCommand(intent, flags, startId)
+
+        if (intent?.action == ACTION_STOP_SERVICE || arePermissionsGranted().not()) {
+            serviceStateHolder.setServiceRunning(isRunning = false)
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
-            return START_NOT_STICKY
+            return START_STICKY
         }
 
-        checkPermissions()
+        serviceStateHolder.setServiceRunning(isRunning = true)
         startForegroundLocationService()
-
-        return START_NOT_STICKY // Tells the system not to recreate the service after it's been killed.
+        return START_STICKY
     }
 
     private fun startForegroundLocationService() {
@@ -75,7 +77,7 @@ class LocationService : Service() {
             .locationFlow()
             .mapLatest { location ->
                 Log.d("LocationService", "New location received: $location")
-                serviceEventMessenger.updateLocation(location)
+                serviceStateHolder.updateLocation(location)
             }
             .launchIn(scope = applicationScope)
     }
@@ -85,29 +87,19 @@ class LocationService : Service() {
     }
 
     override fun onDestroy() {
-        Log.d("LocationService", "Stopping location service")
+        Log.d("LocationService", "onDestroy: Stopping location service")
         locationUpdatesJob?.cancel()
         locationUpdatesJob = null
+        serviceStateHolder.setServiceRunning(isRunning = false)
         super.onDestroy()
     }
 
-    private fun checkPermissions() {
+    private fun arePermissionsGranted(): Boolean { // TODO other permissions?
         val fineLocationPermission = PermissionChecker.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
         )
-        if (fineLocationPermission != PermissionChecker.PERMISSION_GRANTED) {
-            stopSelf() // TODO inform user?
-        }
-
-        // TODO do we need it?
-//        if (PermissionChecker.checkSelfPermission(
-//                this,
-//                Manifest.permission.POST_NOTIFICATIONS
-//        ) != PermissionChecker.PERMISSION_GRANTED
-//        ) {
-//            stopSelf() // TODO inform user?
-//        }
+        return fineLocationPermission == PermissionChecker.PERMISSION_GRANTED
     }
 
     private fun createNotificationChannel() {
@@ -127,18 +119,23 @@ class LocationService : Service() {
         }
         val stopSelfPendingIntent = PendingIntent.getService(
             this,
-            0,
+            1,
             stopSelfIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        // The pending intent that leads to a call to the activity.
+
+        // Intent to open the app when notification is clicked, this will launch MainActivity even if app is killed
+        val notificationIntent = Intent(this, MainActivity::class.java).apply {
+            // These flags ensure the activity is brought to front or created if killed
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
         val activityPendingIntent = PendingIntent.getActivity(
             this,
-            0,
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            2,
+            notificationIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
@@ -147,6 +144,8 @@ class LocationService : Service() {
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(activityPendingIntent)
             .setColorized(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setOngoing(true)
 
         return builder.build()
