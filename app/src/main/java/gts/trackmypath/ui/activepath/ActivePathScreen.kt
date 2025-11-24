@@ -58,6 +58,26 @@ import kotlinx.collections.immutable.toImmutableList
 fun ActivePathScreen(viewModel: ActivePathViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    val event by viewModel.event.collectAsStateWithLifecycle(initialValue = null)
+
+    val context = LocalContext.current
+
+    LaunchedEffect(key1 = event) {
+        event?.let {
+            when (it) {
+                ActivePathViewModel.State.Event.StartLocationService -> {
+                    val locationServiceIntent = Intent(context, LocationService::class.java)
+                    context.startService(locationServiceIntent)
+                }
+                ActivePathViewModel.State.Event.StopLocationService -> {
+                    val locationServiceIntent = Intent(context, LocationService::class.java)
+                    context.stopService(locationServiceIntent)
+                }
+            }
+            viewModel.eventConsumed()
+        }
+    }
+
     ActivePathContent(
         photos = state.photos.toImmutableList(),
         trackingState = state.trackingState,
@@ -73,7 +93,6 @@ private fun ActivePathContent(
     trackingState: TrackingState,
     onTrackPathClick: () -> Unit = {},
 ) {
-    val context = LocalContext.current
     var shouldShowLocationPermissionRationaleRequestDialog by remember { mutableStateOf(false) }
 
     val postNotificationPermission = rememberPermissionState(permission = POST_NOTIFICATIONS)
@@ -101,15 +120,6 @@ private fun ActivePathContent(
                 shouldShowLocationPermissionRationaleRequestDialog = false
             },
         )
-    }
-
-    val locationService = remember { Intent(context, LocationService::class.java) }
-    LaunchedEffect(trackingState) {
-        if (trackingState == TrackingState.TRACKING) {
-            context.startService(locationService)
-        } else {
-            context.stopService(locationService)
-        }
     }
 
     Scaffold(
@@ -142,15 +152,15 @@ private fun ActivePathContent(
                     }
                 },
             ) {
-                val icon = if (trackingState == TrackingState.TRACKING) {
-                    painterResource(R.drawable.stop_icon)
-                } else {
+                val icon = if (trackingState == TrackingState.STOPPED) {
                     painterResource(R.drawable.play_arrow_icon)
-                }
-                val contentDescription = if (trackingState == TrackingState.TRACKING) {
-                    "Stop path tracking"
                 } else {
+                    painterResource(R.drawable.stop_icon)
+                }
+                val contentDescription = if (trackingState == TrackingState.STOPPED) {
                     "Start path tracking"
+                } else {
+                    "Stop path tracking"
                 }
                 Icon(
                     painter = icon,
