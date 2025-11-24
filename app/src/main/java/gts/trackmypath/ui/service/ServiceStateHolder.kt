@@ -16,12 +16,12 @@ class ServiceStateHolder @Inject constructor() {
     private val _isServiceRunning = MutableStateFlow(false)
     val isServiceRunning: StateFlow<Boolean> = _isServiceRunning.asStateFlow()
 
+    private val _locationFlow = MutableSharedFlow<Location?>()
+    val locationFlow: SharedFlow<Location?> = _locationFlow.asSharedFlow()
+
     fun setServiceRunning(isRunning: Boolean) {
         _isServiceRunning.value = isRunning
     }
-
-    private val _locationFlow = MutableSharedFlow<Location?>()
-    val locationFlow: SharedFlow<Location?> = _locationFlow.asSharedFlow()
 
     suspend fun updateLocation(location: Location) {
         _locationFlow.emit(location)

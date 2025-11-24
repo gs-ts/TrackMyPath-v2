@@ -60,6 +60,7 @@ class LocationService : Service() {
         return START_STICKY
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun startForegroundLocationService() {
         try {
             startForeground(NOTIFICATION_ID, getServiceNotification())

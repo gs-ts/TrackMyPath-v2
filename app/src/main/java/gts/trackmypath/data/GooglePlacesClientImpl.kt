@@ -1,6 +1,7 @@
 package gts.trackmypath.data
 
 import android.util.Log
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.PhotoMetadata
@@ -54,13 +55,13 @@ class GooglePlacesClientImpl @Inject constructor(
                     actions = { searchNearbyRequest }
                 ).places
             }
-        } catch (exception: Exception) {
-            Log.e("GooglePlacesClientImpl", "Error searchNearby", exception)
+        } catch (apiException: ApiException) {
+            Log.e("GooglePlacesClientImpl", "Error searchNearby", apiException)
             emptyList()
         }
     }
 
-    @Suppress("RECEIVER_NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+    @Suppress("TooGenericExceptionCaught")
     override suspend fun fetchPhotoUri(photoMetadatas: List<PhotoMetadata>): URI? {
         if (photoMetadatas.isEmpty()) {
             Log.e("GooglePlacesClientImpl", "No photo metadata available")
@@ -80,11 +81,14 @@ class GooglePlacesClientImpl @Inject constructor(
                 ).uri
                 URI(uri.toString())
             }
+        } catch (apiException: ApiException) {
+            Log.e("GooglePlacesClientImpl", "Error fetchPhotoUri", apiException)
+            null
         } catch (uriSyntaxException: URISyntaxException) {
             Log.e("GooglePlacesClientImpl", "Uri syntax error", uriSyntaxException)
             null
         } catch (exception: Exception) {
-            Log.e("GooglePlacesClientImpl", "Error fetchPhoto", exception)
+            Log.e("GooglePlacesClientImpl", "Error fetchPhotoUri", exception)
             null
         }
     }

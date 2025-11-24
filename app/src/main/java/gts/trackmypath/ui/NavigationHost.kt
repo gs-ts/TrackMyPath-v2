@@ -35,7 +35,7 @@ fun NavigationHost() {
                 }
                 PastPathsRoute -> {
                     NavEntry(key = key) {
-                        PastPathsScreen(viewModel = hiltViewModel())
+                        PastPathsScreen()
                     }
                 }
                 else -> throw RuntimeException("Invalid NavKey")

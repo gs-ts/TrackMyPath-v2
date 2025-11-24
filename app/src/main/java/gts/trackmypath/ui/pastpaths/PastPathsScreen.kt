@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun PastPathsScreen(viewModel: PastPathsViewModel) {
+fun PastPathsScreen() {
     PastPathsContent()
 }
 
