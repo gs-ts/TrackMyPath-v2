@@ -4,6 +4,10 @@ on:
   push:
     branches: [ "master" ]
 
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }} # Unique group for each branch
+    cancel-in-progress: true # Cancel any in-progress runs in this group
+
 jobs:
   build:
 

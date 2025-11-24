@@ -28,7 +28,7 @@ espresso-core = "3.7.0"
 viewmodel-testing = "2.10.0"
 turbine = "1.2.1"
 detekt = "1.23.8"
-detekt-compose-rules = "0.4.27"
+detekt-compose-rules = "0.4.28"
 
 [libraries]
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlin-coroutines" }
