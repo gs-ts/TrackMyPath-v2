@@ -1,8 +1,7 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import com.android.build.api.dsl.ApplicationExtension
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
@@ -11,14 +10,7 @@ plugins {
     alias(libs.plugins.secrets.gradle.plugin)
 }
 
-// https://kotlinlang.org/docs/gradle-compiler-options.html#migrate-away-from-android-kotlinoptions
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.fromTarget("17")
-    }
-}
-
-android {
+configure<ApplicationExtension> {
     namespace = "gts.trackmypath"
     compileSdk = 36
 
@@ -32,26 +24,34 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildFeatures {
+        buildConfig = true
+        compose = true
+        aidl = false
+        resValues = false
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures {
-        buildConfig = true
-        compose = true
-    }
+
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
 }
 
-// https://developers.google.com/maps/documentation/places/android-sdk/config
 secrets {
     propertiesFileName = "secrets.properties"
     defaultPropertiesFileName = "local.defaults.properties"
@@ -67,7 +67,6 @@ detekt {
 }
 
 dependencies {
-
     implementation(libs.kotlin.coroutines)
     implementation(libs.kotlinx.serialization)
     implementation(libs.kotlinx.collections)
@@ -107,7 +106,6 @@ dependencies {
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-//    androidTestImplementation(libs.androidx.ui.test.junit4)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
