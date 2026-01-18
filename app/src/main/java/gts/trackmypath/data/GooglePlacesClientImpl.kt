@@ -6,7 +6,6 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
-import com.google.android.libraries.places.api.net.FetchResolvedPhotoUriRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.libraries.places.api.net.SearchNearbyRequest
 import com.google.android.libraries.places.api.net.kotlin.awaitFetchResolvedPhotoUri
@@ -70,16 +69,12 @@ class GooglePlacesClientImpl @Inject constructor(
 
         return try {
             withContext(ioDispatcher) {
-                val photoRequest = FetchResolvedPhotoUriRequest.builder(photoMetadatas[0])
-//            .setMaxWidth(500)
-//            .setMaxHeight(300)
-                    .build()
-
-                val uri = placesClient.awaitFetchResolvedPhotoUri(
+                placesClient.awaitFetchResolvedPhotoUri(
                     photoMetadata = photoMetadatas[0],
-                    actions = { photoRequest }
-                ).uri
-                URI(uri.toString())
+                    actions = {  }
+                )
+                val photoUriResponse = placesClient.awaitFetchResolvedPhotoUri(photoMetadata = photoMetadatas[0])
+                URI(photoUriResponse.uri.toString())
             }
         } catch (apiException: ApiException) {
             Log.e("GooglePlacesClientImpl", "Error fetchPhotoUri", apiException)
