@@ -7,7 +7,6 @@ import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.PlacesClient
-import com.google.android.libraries.places.api.net.SearchNearbyRequest
 import com.google.android.libraries.places.api.net.kotlin.awaitFetchResolvedPhotoUri
 import com.google.android.libraries.places.api.net.kotlin.awaitSearchNearby
 import gts.trackmypath.di.IoDispatcher
@@ -41,17 +40,11 @@ class GooglePlacesClientImpl @Inject constructor(
             Place.Field.PHOTO_METADATAS
         )
 
-        val searchNearbyRequest = SearchNearbyRequest.builder(
-            locationRestriction,
-            placeFields
-        ).build()
-
         return try {
             withContext(context = ioDispatcher) {
                 return@withContext placesClient.awaitSearchNearby(
                     locationRestriction = locationRestriction,
-                    placeFields = placeFields,
-                    actions = { searchNearbyRequest }
+                    placeFields = placeFields
                 ).places
             }
         } catch (apiException: ApiException) {
