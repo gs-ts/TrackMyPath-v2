@@ -62,10 +62,6 @@ class GooglePlacesClientImpl @Inject constructor(
 
         return try {
             withContext(ioDispatcher) {
-                placesClient.awaitFetchResolvedPhotoUri(
-                    photoMetadata = photoMetadatas[0],
-                    actions = {  }
-                )
                 val photoUriResponse = placesClient.awaitFetchResolvedPhotoUri(photoMetadata = photoMetadatas[0])
                 URI(photoUriResponse.uri.toString())
             }
