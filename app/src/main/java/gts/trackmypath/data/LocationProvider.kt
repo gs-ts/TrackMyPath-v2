@@ -82,7 +82,7 @@ class LocationProvider @Inject constructor(
     }.shareIn(
         applicationScope,
         replay = 0,
-        started = SharingStarted.Companion.WhileSubscribed(),
+        started = SharingStarted.WhileSubscribed(),
     )
 
     @SuppressLint("MissingPermission")
