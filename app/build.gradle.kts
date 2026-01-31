@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidx.room)
     alias(libs.plugins.detekt)
     alias(libs.plugins.secrets.gradle.plugin)
 }
@@ -52,6 +53,10 @@ configure<ApplicationExtension> {
     }
 }
 
+room { // https://developer.android.com/jetpack/androidx/releases/room#gradle-plugin
+    schemaDirectory("$projectDir/schemas")
+}
+
 secrets {
     propertiesFileName = "secrets.properties"
     defaultPropertiesFileName = "local.defaults.properties"
@@ -77,6 +82,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
@@ -102,6 +108,7 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlin.coroutines.test)
     testImplementation(libs.androidx.viewmodel.testing)
+    implementation(libs.androidx.room.testing)
     testImplementation(libs.app.cash.turbine)
 
     androidTestImplementation(libs.androidx.junit)
