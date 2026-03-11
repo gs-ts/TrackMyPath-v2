@@ -1,4 +1,4 @@
-package gts.trackmypath.data
+package gts.trackmypath.data.network
 
 import android.util.Log
 import com.google.android.gms.common.api.ApiException
@@ -37,7 +37,10 @@ class GooglePlacesClientImpl @Inject constructor(
         val placeFields = listOf(
             Place.Field.ID,
             Place.Field.DISPLAY_NAME,
-            Place.Field.PHOTO_METADATAS
+            Place.Field.PHOTO_METADATAS,
+            Place.Field.GOOGLE_MAPS_URI,
+            Place.Field.GENERATIVE_SUMMARY,
+            Place.Field.NEIGHBORHOOD_SUMMARY
         )
 
         return try {
