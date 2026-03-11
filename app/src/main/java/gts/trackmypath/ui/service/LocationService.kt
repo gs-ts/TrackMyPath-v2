@@ -15,6 +15,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import gts.trackmypath.R
 import gts.trackmypath.data.LocationProvider
 import gts.trackmypath.di.ApplicationScope
+import gts.trackmypath.domain.FetchPhotoMetadataForLocationUseCase
+import gts.trackmypath.domain.PhotoMetadata
+import gts.trackmypath.domain.RouteId
 import gts.trackmypath.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,6 +39,9 @@ class LocationService : Service() {
     @Inject
     lateinit var serviceStateHolder: ServiceStateHolder
 
+    @Inject
+    lateinit var fetchPhotoMetadataForLocationUseCase: FetchPhotoMetadataForLocationUseCase
+
     private var locationUpdatesJob: Job? = null
 
     override fun onCreate() {
@@ -56,16 +62,19 @@ class LocationService : Service() {
         }
 
         serviceStateHolder.setServiceRunning(isRunning = true)
-        startForegroundLocationService()
+        val routeId = intent?.getLongExtra("EXTRA_ROUTE_ID", -1L)
+        routeId?.let {
+            startForegroundLocationService(routeId = routeId)
+        }
         return START_STICKY
     }
 
     @Suppress("TooGenericExceptionCaught")
-    private fun startForegroundLocationService() {
+    private fun startForegroundLocationService(routeId: Long) {
         try {
             startForeground(NOTIFICATION_ID, getServiceNotification())
             if (locationUpdatesJob == null) {
-                collectLocationUpdates()
+                collectLocationUpdates(routeId = routeId)
             }
         } catch (exception: Exception) {
             Log.e("LocationService", "Failed to start foreground service", exception)
@@ -73,12 +82,22 @@ class LocationService : Service() {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun collectLocationUpdates() {
+    private fun collectLocationUpdates(routeId: Long) {
         locationUpdatesJob = locationProvider
             .locationFlow()
             .mapLatest { location ->
                 Log.d("LocationService", "New location received: $location")
-                serviceStateHolder.updateLocation(location)
+                fetchPhotoMetadataForLocationUseCase(
+                    routeId = RouteId(id = routeId),
+                    location = PhotoMetadata.Location(
+                        latitude = location.latitude,
+                        longitude = location.longitude
+                    )
+                ).onSuccess {
+                    Log.d("LocationService", "photo received")
+                }.onFailure {
+                    Log.e("LocationService", "error fetching photo", it)
+                }
             }
             .launchIn(scope = applicationScope)
     }
