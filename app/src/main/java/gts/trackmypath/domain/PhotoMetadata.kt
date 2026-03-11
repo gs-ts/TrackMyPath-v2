@@ -1,8 +1,17 @@
 package gts.trackmypath.domain
 
-import java.net.URI
-
 data class PhotoMetadata(
-    val id: String,
-    val photoUri: URI
-)
+    val id: Long,
+    val placeId: String,
+    val photoUri: String,
+    val location: Location,
+    val googleMapsUri: String?,
+    val generativeSummary: String?,
+    val neighborhoodSummary: String?,
+) {
+
+    data class Location(
+        val latitude: Double,
+        val longitude: Double
+    )
+}
