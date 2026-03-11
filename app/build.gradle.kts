@@ -101,7 +101,7 @@ dependencies {
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.room.compiler)
 
-    detektPlugins(libs.detekt.formatting)
+    detektPlugins(libs.detekt.rules.ktlint.wrapper)
     detektPlugins(libs.detekt.compose.rules)
 
     testImplementation(libs.junit)
