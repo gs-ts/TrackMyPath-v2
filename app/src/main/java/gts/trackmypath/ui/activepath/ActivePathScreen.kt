@@ -56,32 +56,33 @@ import kotlinx.collections.immutable.toImmutableList
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ActivePathScreen(viewModel: ActivePathViewModel) {
+
     val state by viewModel.state.collectAsStateWithLifecycle()
-
-    val event by viewModel.event.collectAsStateWithLifecycle(initialValue = null)
-
     val context = LocalContext.current
 
-    LaunchedEffect(key1 = event) {
-        event?.let {
-            when (it) {
-                ActivePathViewModel.State.Event.StartLocationService -> {
-                    val locationServiceIntent = Intent(context, LocationService::class.java)
-                    context.startService(locationServiceIntent)
+    LaunchedEffect(key1 = state.trackingState) {
+        val locationServiceIntent = Intent(context, LocationService::class.java)
+
+        when (state.trackingState) {
+            TrackingState.STARTED -> {
+                state.ongoingRouteId?.let { routeId ->
+                    locationServiceIntent.putExtra("EXTRA_ROUTE_ID", routeId.id)
                 }
-                ActivePathViewModel.State.Event.StopLocationService -> {
-                    val locationServiceIntent = Intent(context, LocationService::class.java)
-                    context.stopService(locationServiceIntent)
-                }
+                context.startService(locationServiceIntent)
             }
-            viewModel.eventConsumed()
+            TrackingState.STOPPED -> {
+                context.stopService(locationServiceIntent)
+            }
         }
     }
 
     ActivePathContent(
-        photos = state.photos.toImmutableList(),
+        state = state,
         trackingState = state.trackingState,
         onTrackPathClick = viewModel::onTrackPathClick,
+        onRouteNameChange = viewModel::onRouteNameChange,
+        onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
+        onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick
     )
 }
 
@@ -89,9 +90,12 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
 @Composable
 private fun ActivePathContent(
     modifier: Modifier = Modifier,
-    photos: ImmutableList<PhotoMetadata>,
+    state: ActivePathViewModel.State,
     trackingState: TrackingState,
-    onTrackPathClick: () -> Unit = {},
+    onTrackPathClick: () -> Unit,
+    onRouteNameChange: (String) -> Unit,
+    onConfirmNameRouteDialogClick: () -> Unit,
+    onDismissNameRouteDialogClick: () -> Unit
 ) {
     var shouldShowLocationPermissionRationaleRequestDialog by remember { mutableStateOf(false) }
 
@@ -122,6 +126,15 @@ private fun ActivePathContent(
         )
     }
 
+    if (state.showNameRouteDialog) {
+        NameRouteDialog(
+            routeName = state.routeNameInput,
+            onRouteNameChange = onRouteNameChange,
+            onConfirmClick = onConfirmNameRouteDialogClick,
+            onDismissClick = onDismissNameRouteDialogClick
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -146,7 +159,7 @@ private fun ActivePathContent(
                         onTrackPathClick()
                     } else if (isCoarseLocationGranted) {
                         // Inform the user that fine location provides better results.
-                        shouldShowLocationPermissionRationaleRequestDialog = true
+                        shouldShowLocationPermissionRationaleRequestDialog = true // TODO: unused?
                     } else {
                         shouldShowLocationPermissionRationaleRequestDialog = true
                     }
@@ -174,7 +187,7 @@ private fun ActivePathContent(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(12.dp),
-            photos = photos
+            photos = state.photos.toImmutableList()
         )
     }
 }
@@ -190,7 +203,7 @@ private fun PhotoStream(
             key = { photo -> photo.id }
         ) { photo ->
             AsyncImage(
-                model = photo.photoUri.toString(),
+                model = photo.photoUri,
                 contentDescription = "image of pokemon",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
@@ -245,7 +258,13 @@ private fun LocationPermissionRequestDialog(
 @Composable
 private fun ActivePathPreview() {
     ActivePathContent(
-        photos = persistentListOf(),
-        trackingState = TrackingState.STOPPED
+        state = ActivePathViewModel.State(
+            photos = persistentListOf(),
+        ),
+        trackingState = TrackingState.STOPPED,
+        onTrackPathClick = {},
+        onRouteNameChange = {},
+        onConfirmNameRouteDialogClick = {},
+        onDismissNameRouteDialogClick = {}
     )
 }
