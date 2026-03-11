@@ -4,10 +4,12 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import gts.trackmypath.data.GooglePlacesClient
-import gts.trackmypath.data.GooglePlacesClientImpl
+import gts.trackmypath.data.network.GooglePlacesClient
+import gts.trackmypath.data.network.GooglePlacesClientImpl
 import gts.trackmypath.data.PhotoRepositoryImpl
+import gts.trackmypath.data.RouteRepositoryImpl
 import gts.trackmypath.domain.PhotoRepository
+import gts.trackmypath.domain.RouteRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -22,4 +24,9 @@ interface DataModule {
     fun bindPhotoRepository(
         photoRepositoryImpl: PhotoRepositoryImpl
     ): PhotoRepository
+
+    @Binds
+    fun bindRouteRepository(
+        routeRepositoryImpl: RouteRepositoryImpl
+    ): RouteRepository
 }
