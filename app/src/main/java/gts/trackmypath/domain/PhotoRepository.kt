@@ -1,8 +1,13 @@
 package gts.trackmypath.domain
 
-import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.flow.Flow
 
 interface PhotoRepository {
 
-    suspend fun fetchPhotoMetadataForLocation(latLng: LatLng): Result<PhotoMetadata>
+    suspend fun fetchPhotoMetadataForLocation(
+        routeId: RouteId,
+        location: PhotoMetadata.Location
+    ): Result<Unit>
+
+    fun observePhotos(): Flow<List<PhotoMetadata>>
 }
