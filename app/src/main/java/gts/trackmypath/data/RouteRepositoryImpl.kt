@@ -6,9 +6,7 @@ import gts.trackmypath.domain.RouteId
 import gts.trackmypath.domain.RouteRepository
 import javax.inject.Inject
 
-class RouteRepositoryImpl @Inject constructor(
-    private val routeDao: RouteDao
-) : RouteRepository {
+class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : RouteRepository {
 
     override suspend fun startRoute(): RouteId {
         // Create an empty "in-progress" route.

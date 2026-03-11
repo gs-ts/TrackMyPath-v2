@@ -47,7 +47,7 @@ class LocationProvider @Inject constructor(
         .build()
 
     @SuppressLint("MissingPermission")
-    private val _locationUpdates = callbackFlow {
+    private val locationUpdates = callbackFlow {
         val locationCallback = object : LocationCallback() {
 
             override fun onLocationResult(locationResult: LocationResult) {
@@ -99,9 +99,7 @@ class LocationProvider @Inject constructor(
             }
     }
 
-    fun locationFlow(): Flow<Location> {
-        return _locationUpdates
-    }
+    fun locationFlow(): Flow<Location> = locationUpdates
 
     companion object {
         private const val SMALLEST_DISPLACEMENT_100_METERS = 100F

@@ -29,7 +29,6 @@ class PhotoRepositoryImpl @Inject constructor(
         location: PhotoMetadata.Location
     ): Result<Unit> {
         return withContext(ioDispatcher) {
-
             val places = googlePlacesClient.searchNearbyPlaces(
                 latLng = LatLng(location.latitude, location.longitude)
             )

@@ -38,7 +38,9 @@ fun NavigationHost() {
                         PastPathsScreen()
                     }
                 }
-                else -> throw RuntimeException("Invalid NavKey")
+                else -> {
+                    throw RuntimeException("Invalid NavKey")
+                }
             }
         },
     )
