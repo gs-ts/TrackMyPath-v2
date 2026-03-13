@@ -51,7 +51,7 @@ class GooglePlacesClientImpl @Inject constructor(
                 ).places
             }
         } catch (apiException: ApiException) {
-            Log.e("GooglePlacesClientImpl", "Error searchNearby", apiException)
+            Log.e("GooglePlacesClient", "Error searchNearby", apiException)
             emptyList()
         }
     }
@@ -59,7 +59,6 @@ class GooglePlacesClientImpl @Inject constructor(
     @Suppress("TooGenericExceptionCaught")
     override suspend fun fetchPhotoUri(photoMetadatas: List<PhotoMetadata>): URI? {
         if (photoMetadatas.isEmpty()) {
-            Log.e("GooglePlacesClientImpl", "No photo metadata available")
             return null
         }
 
@@ -69,13 +68,13 @@ class GooglePlacesClientImpl @Inject constructor(
                 URI(photoUriResponse.uri.toString())
             }
         } catch (apiException: ApiException) {
-            Log.e("GooglePlacesClientImpl", "Error fetchPhotoUri", apiException)
+            Log.e("GooglePlacesClient", "Api error", apiException)
             null
         } catch (uriSyntaxException: URISyntaxException) {
-            Log.e("GooglePlacesClientImpl", "Uri syntax error", uriSyntaxException)
+            Log.e("GooglePlacesClient", "Uri syntax error", uriSyntaxException)
             null
         } catch (exception: Exception) {
-            Log.e("GooglePlacesClientImpl", "Error fetchPhotoUri", exception)
+            Log.e("GooglePlacesClient", "Other error", exception)
             null
         }
     }

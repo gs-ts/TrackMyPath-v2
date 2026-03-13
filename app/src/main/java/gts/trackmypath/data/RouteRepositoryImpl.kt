@@ -1,5 +1,6 @@
 package gts.trackmypath.data
 
+import android.util.Log
 import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
 import gts.trackmypath.domain.RouteId
@@ -18,6 +19,7 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
 
         val id = routeDao.insertRoute(route = pendingRoute)
 
+        Log.d("RouteRepository", "startRoute with routeId $id")
         return RouteId(id = id)
     }
 
@@ -37,10 +39,12 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
             )
 
             routeDao.updateRoute(route = completedRoute)
+            Log.d("RouteRepository", "finishRoute with routeId ${routeId.id} and displayName $displayName")
         }
     }
 
     override suspend fun deleteRoute(routeId: RouteId) {
+        Log.d("RouteRepository", "deleteRoute with routeId ${routeId.id}")
         routeDao.deleteRouteById(routeId = routeId.id)
     }
 }

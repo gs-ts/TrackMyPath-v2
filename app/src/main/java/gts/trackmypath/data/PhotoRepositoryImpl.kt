@@ -8,7 +8,9 @@ import gts.trackmypath.data.database.photo.toDomain
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.di.IoDispatcher
 import gts.trackmypath.domain.PhotoMetadata
+import gts.trackmypath.domain.PhotoMetadataUnavailableException
 import gts.trackmypath.domain.PhotoRepository
+import gts.trackmypath.domain.PlacesUnavailableException
 import gts.trackmypath.domain.RouteId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +30,8 @@ class PhotoRepositoryImpl @Inject constructor(
         routeId: RouteId,
         location: PhotoMetadata.Location
     ): Result<Unit> {
+        Log.d("PhotoRepository", "fetchPhotoMetadataForLocation for route ${routeId.id} and location $location")
+
         return withContext(ioDispatcher) {
             val places = googlePlacesClient.searchNearbyPlaces(
                 latLng = LatLng(location.latitude, location.longitude)
@@ -35,17 +39,7 @@ class PhotoRepositoryImpl @Inject constructor(
 
             if (places.isNotEmpty()) {
                 val firstPlace = places.first()
-                Log.d("PhotoRepository", "firstPlace id: ${firstPlace.id}")
-                Log.d("PhotoRepository", "firstPlace displayName: ${firstPlace.displayName}")
-                Log.d("PhotoRepository", "firstPlace googleMapsUri: ${firstPlace.googleMapsUri}")
-                Log.d(
-                    "PhotoRepository",
-                    "firstPlace generativeSummary: ${firstPlace.generativeSummary}"
-                )
-                Log.d(
-                    "PhotoRepository",
-                    "firstPlace neighborhoodSummary: ${firstPlace.neighborhoodSummary}"
-                )
+                Log.d("PhotoRepository", "fetchPhotoMetadataForLocation found first place $firstPlace")
 
                 firstPlace.id?.let { placeId ->
                     val photoMetadata = firstPlace.photoMetadatas
@@ -71,13 +65,12 @@ class PhotoRepositoryImpl @Inject constructor(
                                 )
                             )
                             Result.success(Unit)
-                        } ?: Result.failure(Exception("No photoUri available"))
-                    } ?: Result.failure(Exception("No photoMetadata available"))
-                } ?: Result.failure(Exception("No first place available"))
+                        } ?: Result.failure(exception = PhotoMetadataUnavailableException("No photoUri available"))
+                    } ?: Result.failure(exception = PhotoMetadataUnavailableException("No photoMetadata available"))
+                } ?: Result.failure(exception = PlacesUnavailableException("No first place available"))
             } else {
                 Log.e("GooglePlacesClient", "No places available")
-                // TODO improve exceptions
-                Result.failure(Exception("No places available"))
+                Result.failure(exception = PlacesUnavailableException())
             }
         }
     }
