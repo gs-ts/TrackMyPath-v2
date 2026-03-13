@@ -19,11 +19,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resumeWithException
 
 @Singleton
 class LocationProvider @Inject constructor(
@@ -60,12 +58,6 @@ class LocationProvider @Inject constructor(
 
         Log.d("LocationProvider", "Starting location updates")
 
-//        val initialLocation = getLastKnownLocation()
-//        initialLocation?.let {
-//            Log.d("LocationProvider", "Initial last location: ${it.latitude}, ${it.longitude}")
-//            trySend(initialLocation)
-//        }
-
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
             locationCallback,
@@ -80,24 +72,10 @@ class LocationProvider @Inject constructor(
             Log.d("LocationProvider", "Location updates stopped")
         }
     }.shareIn(
-        applicationScope,
+        scope = applicationScope,
         replay = 0,
         started = SharingStarted.WhileSubscribed(),
     )
-
-    @SuppressLint("MissingPermission")
-    suspend fun getLastKnownLocation(): Location? = suspendCancellableCoroutine { continuation ->
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location: Location? ->
-                continuation.resume(value = location) { cause, _, _ ->
-                    Log.d("LocationProvider", "lastLocation cancellation")
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.e("LocationProvider", "lastLocation failed: $exception")
-                continuation.resumeWithException(exception)
-            }
-    }
 
     fun locationFlow(): Flow<Location> = locationUpdates
 
