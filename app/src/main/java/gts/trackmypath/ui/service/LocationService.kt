@@ -15,9 +15,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import gts.trackmypath.R
 import gts.trackmypath.data.LocationProvider
 import gts.trackmypath.di.ApplicationScope
-import gts.trackmypath.domain.FetchPhotoMetadataForLocationUseCase
-import gts.trackmypath.domain.PhotoMetadata
-import gts.trackmypath.domain.RouteId
+import gts.trackmypath.domain.photo.FetchPhotoMetadataForLocationUseCase
+import gts.trackmypath.domain.photo.PhotoMetadata
+import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi

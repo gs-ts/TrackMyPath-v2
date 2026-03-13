@@ -1,5 +1,6 @@
-package gts.trackmypath.domain
+package gts.trackmypath.domain.photo
 
+import gts.trackmypath.domain.route.RouteId
 import javax.inject.Inject
 
 class FetchPhotoMetadataForLocationUseCase @Inject constructor(private val photoRepository: PhotoRepository) {

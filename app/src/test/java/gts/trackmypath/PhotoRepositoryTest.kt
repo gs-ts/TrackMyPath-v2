@@ -10,11 +10,11 @@ import gts.trackmypath.data.PhotoRepositoryImpl
 import gts.trackmypath.data.database.photo.PhotoMetadataDao
 import gts.trackmypath.data.database.photo.PhotoMetadataEntity
 import gts.trackmypath.domain.PlacesUnavailableException
-import gts.trackmypath.domain.RouteId
+import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
-import gts.trackmypath.domain.PhotoMetadata as DomainPhotoMetadata
+import gts.trackmypath.domain.photo.PhotoMetadata as DomainPhotoMetadata
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import java.net.URI

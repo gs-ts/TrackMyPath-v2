@@ -7,11 +7,11 @@ import gts.trackmypath.data.database.photo.PhotoMetadataEntity
 import gts.trackmypath.data.database.photo.toDomain
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.di.IoDispatcher
-import gts.trackmypath.domain.PhotoMetadata
 import gts.trackmypath.domain.PhotoMetadataUnavailableException
-import gts.trackmypath.domain.PhotoRepository
 import gts.trackmypath.domain.PlacesUnavailableException
-import gts.trackmypath.domain.RouteId
+import gts.trackmypath.domain.photo.PhotoMetadata
+import gts.trackmypath.domain.photo.PhotoRepository
+import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged

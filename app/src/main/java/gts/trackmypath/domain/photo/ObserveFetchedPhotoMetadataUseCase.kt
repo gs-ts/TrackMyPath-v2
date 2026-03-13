@@ -1,4 +1,4 @@
-package gts.trackmypath.domain
+package gts.trackmypath.domain.photo
 
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject

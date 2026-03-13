@@ -3,8 +3,8 @@ package gts.trackmypath.data
 import android.util.Log
 import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
-import gts.trackmypath.domain.RouteId
-import gts.trackmypath.domain.RouteRepository
+import gts.trackmypath.domain.route.RouteId
+import gts.trackmypath.domain.route.RouteRepository
 import javax.inject.Inject
 
 class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : RouteRepository {

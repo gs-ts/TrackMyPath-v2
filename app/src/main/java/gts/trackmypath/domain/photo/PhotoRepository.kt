@@ -1,5 +1,6 @@
-package gts.trackmypath.domain
+package gts.trackmypath.domain.photo
 
+import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.flow.Flow
 
 interface PhotoRepository {

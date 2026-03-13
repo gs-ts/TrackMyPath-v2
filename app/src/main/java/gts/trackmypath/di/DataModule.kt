@@ -8,8 +8,8 @@ import gts.trackmypath.data.PhotoRepositoryImpl
 import gts.trackmypath.data.RouteRepositoryImpl
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.data.network.GooglePlacesClientImpl
-import gts.trackmypath.domain.PhotoRepository
-import gts.trackmypath.domain.RouteRepository
+import gts.trackmypath.domain.photo.PhotoRepository
+import gts.trackmypath.domain.route.RouteRepository
 
 @Module
 @InstallIn(SingletonComponent::class)

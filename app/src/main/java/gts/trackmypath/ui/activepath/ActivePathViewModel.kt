@@ -4,11 +4,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gts.trackmypath.domain.FinishRouteUseCase
-import gts.trackmypath.domain.ObserveFetchedPhotoMetadataUseCase
-import gts.trackmypath.domain.PhotoMetadata
-import gts.trackmypath.domain.RouteId
-import gts.trackmypath.domain.StartRouteUseCase
+import gts.trackmypath.domain.photo.ObserveFetchedPhotoMetadataUseCase
+import gts.trackmypath.domain.photo.PhotoMetadata
+import gts.trackmypath.domain.route.FinishRouteUseCase
+import gts.trackmypath.domain.route.RouteId
+import gts.trackmypath.domain.route.StartRouteUseCase
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import gts.trackmypath.ui.service.ServiceStateHolder
 import kotlinx.collections.immutable.PersistentList

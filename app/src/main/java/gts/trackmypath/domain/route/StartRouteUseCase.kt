@@ -1,4 +1,4 @@
-package gts.trackmypath.domain
+package gts.trackmypath.domain.route
 
 import javax.inject.Inject
 
