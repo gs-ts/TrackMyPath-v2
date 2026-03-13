@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gts.trackmypath.domain.photo.ObserveFetchedPhotoMetadataUseCase
 import gts.trackmypath.domain.photo.PhotoMetadata
+import gts.trackmypath.domain.route.DeletePendingRouteUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.StartRouteUseCase
@@ -29,7 +30,8 @@ class ActivePathViewModel @Inject constructor(
     private val serviceStateHolder: ServiceStateHolder,
     private val observeFetchedPhotoMetadataUseCase: ObserveFetchedPhotoMetadataUseCase,
     private val startRouteUseCase: StartRouteUseCase,
-    private val finishRouteUseCase: FinishRouteUseCase
+    private val finishRouteUseCase: FinishRouteUseCase,
+    private val deletePendingRouteUseCase: DeletePendingRouteUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(State())
@@ -109,15 +111,21 @@ class ActivePathViewModel @Inject constructor(
     }
 
     fun onDismissNameRouteDialogClick() {
-        _state.update { state ->
-            state.copy(
-                showNameRouteDialog = false,
-                routeNameInput = "",
-                photos = persistentListOf() // clear the photo stream
-            )
+        viewModelScope.launch {
+            val routeId = _state.value.ongoingRouteId
+            routeId?.let {
+                deletePendingRouteUseCase(routeId = routeId)
+            }
+
+            _state.update { state ->
+                state.copy(
+                    ongoingRouteId = null,
+                    showNameRouteDialog = false,
+                    routeNameInput = "",
+                    photos = persistentListOf() // clear the photo stream
+                )
+            }
         }
-        // Note: Since we have a "pending route" in the DB, you will want to call
-        // your DeleteRouteUseCase or save it as "Unnamed Route" here.
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -141,10 +149,7 @@ class ActivePathViewModel @Inject constructor(
     private fun stopLocationUpdates() {
         Log.d("ActivePathViewModel", "user clicked stop location updates")
         _state.update { state ->
-            state.copy(
-                trackingState = TrackingState.STOPPED,
-                photos = persistentListOf()
-            )
+            state.copy(trackingState = TrackingState.STOPPED)
         }
         locationUpdatesJob?.cancel()
         locationUpdatesJob = null
