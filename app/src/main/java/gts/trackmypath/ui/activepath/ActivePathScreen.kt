@@ -46,7 +46,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
-import gts.trackmypath.domain.photo.PhotoMetadata
+import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import gts.trackmypath.ui.service.LocationService
 import kotlinx.collections.immutable.ImmutableList
