@@ -1,14 +1,11 @@
-package gts.trackmypath.domain.photo
+package gts.trackmypath.domain.photometadata
 
 import gts.trackmypath.domain.route.RouteId
-import kotlinx.coroutines.flow.Flow
 
-interface PhotoRepository {
+interface PhotoMetadataRepository {
 
     suspend fun fetchPhotoMetadataForLocation(
         routeId: RouteId,
         location: PhotoMetadata.Location
     ): Result<Unit>
-
-    fun observePhotos(): Flow<List<PhotoMetadata>>
 }

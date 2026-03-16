@@ -1,4 +1,4 @@
-package gts.trackmypath.domain.photo
+package gts.trackmypath.domain.photometadata
 
 data class PhotoMetadata(
     val id: Long,
