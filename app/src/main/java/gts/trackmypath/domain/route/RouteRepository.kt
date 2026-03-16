@@ -1,5 +1,7 @@
 package gts.trackmypath.domain.route
 
+import kotlinx.coroutines.flow.Flow
+
 interface RouteRepository {
 
     // called when the user clicks "Play" and returns the id of the route
@@ -13,6 +15,8 @@ interface RouteRepository {
     )
 
     suspend fun deleteRoute(routeId: RouteId)
+
+    fun observeRouteWithPhotoMetadataById(routeId: RouteId): Flow<RouteWithPhotoMetadata>
 }
 
 @JvmInline
