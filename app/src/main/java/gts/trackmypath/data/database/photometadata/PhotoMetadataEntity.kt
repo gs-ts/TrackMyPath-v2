@@ -1,4 +1,4 @@
-package gts.trackmypath.data.database.photo
+package gts.trackmypath.data.database.photometadata
 
 import androidx.room.ColumnInfo
 import androidx.room.Embedded
@@ -7,7 +7,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import gts.trackmypath.data.database.route.RouteEntity
-import gts.trackmypath.domain.photo.PhotoMetadata
+import gts.trackmypath.domain.photometadata.PhotoMetadata
 
 @Entity(
     tableName = "photo_metadata",

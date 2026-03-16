@@ -10,7 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import gts.trackmypath.data.database.AppDatabase
-import gts.trackmypath.data.database.photo.PhotoMetadataDao
+import gts.trackmypath.data.database.photometadata.PhotoMetadataDao
 import gts.trackmypath.data.database.route.RouteDao
 import javax.inject.Singleton
 

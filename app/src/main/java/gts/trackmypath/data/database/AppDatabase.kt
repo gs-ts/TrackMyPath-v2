@@ -4,8 +4,8 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import gts.trackmypath.data.database.converter.MetadataConverter
-import gts.trackmypath.data.database.photo.PhotoMetadataDao
-import gts.trackmypath.data.database.photo.PhotoMetadataEntity
+import gts.trackmypath.data.database.photometadata.PhotoMetadataDao
+import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
 

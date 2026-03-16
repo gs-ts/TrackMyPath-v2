@@ -2,35 +2,31 @@ package gts.trackmypath.data
 
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
-import gts.trackmypath.data.database.photo.PhotoMetadataDao
-import gts.trackmypath.data.database.photo.PhotoMetadataEntity
-import gts.trackmypath.data.database.photo.toDomain
+import gts.trackmypath.data.database.photometadata.PhotoMetadataDao
+import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.di.IoDispatcher
 import gts.trackmypath.domain.PhotoMetadataUnavailableException
 import gts.trackmypath.domain.PlacesUnavailableException
-import gts.trackmypath.domain.photo.PhotoMetadata
-import gts.trackmypath.domain.photo.PhotoRepository
+import gts.trackmypath.domain.photometadata.PhotoMetadata
+import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
 import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-class PhotoRepositoryImpl @Inject constructor(
+class PhotoMetadataRepositoryImpl @Inject constructor(
     private val googlePlacesClient: GooglePlacesClient,
     private val photoMetadataDao: PhotoMetadataDao,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
-) : PhotoRepository {
+) : PhotoMetadataRepository {
 
     override suspend fun fetchPhotoMetadataForLocation(
         routeId: RouteId,
         location: PhotoMetadata.Location
     ): Result<Unit> {
-        Log.d("PhotoRepository", "fetchPhotoMetadataForLocation for route ${routeId.id} and location $location")
+        Log.d("PhotoMetadataRepository", "fetchPhotoMetadataForLocation for route ${routeId.id} and location $location")
 
         return withContext(ioDispatcher) {
             val places = googlePlacesClient.searchNearbyPlaces(
@@ -39,7 +35,7 @@ class PhotoRepositoryImpl @Inject constructor(
 
             if (places.isNotEmpty()) {
                 val firstPlace = places.first()
-                Log.d("PhotoRepository", "fetchPhotoMetadataForLocation found first place $firstPlace")
+                Log.d("PhotoMetadataRepository", "fetchPhotoMetadataForLocation found first place $firstPlace")
 
                 firstPlace.id?.let { placeId ->
                     val photoMetadata = firstPlace.photoMetadatas
@@ -73,15 +69,5 @@ class PhotoRepositoryImpl @Inject constructor(
                 Result.failure(exception = PlacesUnavailableException())
             }
         }
-    }
-
-    override fun observePhotos(): Flow<List<PhotoMetadata>> {
-        return photoMetadataDao.observeAllPhotos()
-            .map { entities ->
-                entities.map { entity -> entity.toDomain() }
-            }
-            // This ensures the Flow only emits if the list content *actually* differs
-            // from the previous emission, preventing unnecessary UI redraws.
-            .distinctUntilChanged()
     }
 }
