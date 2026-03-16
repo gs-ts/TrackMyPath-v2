@@ -53,6 +53,13 @@ configure<ApplicationExtension> {
     }
 }
 
+kotlin {
+    compilerOptions {
+        // https://kotlinlang.org/docs/whatsnew23.html#explicit-backing-fields
+        freeCompilerArgs.add("-Xexplicit-backing-fields")
+    }
+}
+
 room { // https://developer.android.com/jetpack/androidx/releases/room#gradle-plugin
     schemaDirectory("$projectDir/schemas")
 }
