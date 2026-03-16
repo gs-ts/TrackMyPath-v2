@@ -4,10 +4,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gts.trackmypath.domain.photo.ObserveFetchedPhotoMetadataUseCase
-import gts.trackmypath.domain.photo.PhotoMetadata
+import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.DeletePendingRouteUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
+import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.StartRouteUseCase
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
@@ -19,7 +19,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,53 +27,43 @@ import javax.inject.Inject
 @HiltViewModel
 class ActivePathViewModel @Inject constructor(
     private val serviceStateHolder: ServiceStateHolder,
-    private val observeFetchedPhotoMetadataUseCase: ObserveFetchedPhotoMetadataUseCase,
     private val startRouteUseCase: StartRouteUseCase,
     private val finishRouteUseCase: FinishRouteUseCase,
-    private val deletePendingRouteUseCase: DeletePendingRouteUseCase
+    private val deletePendingRouteUseCase: DeletePendingRouteUseCase,
+    private val observeRouteWithPhotoMetadataUseCase: ObserveRouteWithPhotoMetadataUseCase
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(State())
-    val state: StateFlow<State> = _state.asStateFlow()
+    val state: StateFlow<State>
+        field = MutableStateFlow(State())
 
     private var locationUpdatesJob: Job? = null
+    private var ongoingRoutePhotosJob: Job? = null
 
     init {
         observeServiceEvents()
-        observeFetchedPhotos()
-    }
-
-    private fun observeFetchedPhotos() {
-        viewModelScope.launch {
-            observeFetchedPhotoMetadataUseCase.photos.collect { photos ->
-                _state.update { state ->
-                    state.copy(photos = photos.toPersistentList())
-                }
-            }
-        }
     }
 
     fun onTrackPathClick() {
-        val currentTrackingState = _state.value.trackingState
+        val currentTrackingState = state.value.trackingState
 
         when (currentTrackingState) {
             TrackingState.STOPPED -> {
                 viewModelScope.launch {
-                    // TODO: what if app (and service) gets killed by the system,
-                    //  the database entry is there! You must delete it.
                     val newRouteId = startRouteUseCase()
-
-                    _state.update { state ->
+                    state.update { state ->
                         state.copy(
                             ongoingRouteId = newRouteId,
                             trackingState = TrackingState.STARTED,
                         )
                     }
+                    observeOngoingRoutePhotos()
                 }
             }
 
             TrackingState.STARTED -> {
-                _state.update { state ->
+                ongoingRoutePhotosJob?.cancel()
+
+                state.update { state ->
                     state.copy(
                         trackingState = TrackingState.STOPPED,
                         showNameRouteDialog = true
@@ -85,12 +74,12 @@ class ActivePathViewModel @Inject constructor(
     }
 
     fun onRouteNameChange(newRouteName: String) {
-        _state.update { state -> state.copy(routeNameInput = newRouteName) }
+        state.update { state -> state.copy(routeNameInput = newRouteName) }
     }
 
     fun onConfirmNameRouteDialogClick() {
-        val routeId = _state.value.ongoingRouteId
-        val routeName = _state.value.routeNameInput
+        val routeId = state.value.ongoingRouteId
+        val routeName = state.value.routeNameInput
         routeId?.let {
             viewModelScope.launch {
                 finishRouteUseCase(
@@ -100,7 +89,7 @@ class ActivePathViewModel @Inject constructor(
             }
         }
 
-        _state.update { state ->
+        state.update { state ->
             state.copy(
                 ongoingRouteId = null,
                 showNameRouteDialog = false,
@@ -112,12 +101,12 @@ class ActivePathViewModel @Inject constructor(
 
     fun onDismissNameRouteDialogClick() {
         viewModelScope.launch {
-            val routeId = _state.value.ongoingRouteId
+            val routeId = state.value.ongoingRouteId
             routeId?.let {
                 deletePendingRouteUseCase(routeId = routeId)
             }
 
-            _state.update { state ->
+            state.update { state ->
                 state.copy(
                     ongoingRouteId = null,
                     showNameRouteDialog = false,
@@ -135,7 +124,7 @@ class ActivePathViewModel @Inject constructor(
                 .collectLatest { isServiceRunning ->
                     if (isServiceRunning) {
                         if (state.value.trackingState == TrackingState.STOPPED) {
-                            _state.update { state ->
+                            state.update { state ->
                                 state.copy(trackingState = TrackingState.STARTED)
                             }
                         }
@@ -148,11 +137,23 @@ class ActivePathViewModel @Inject constructor(
 
     private fun stopLocationUpdates() {
         Log.d("ActivePathViewModel", "user clicked stop location updates")
-        _state.update { state ->
+        state.update { state ->
             state.copy(trackingState = TrackingState.STOPPED)
         }
         locationUpdatesJob?.cancel()
         locationUpdatesJob = null
+    }
+
+    private fun observeOngoingRoutePhotos() {
+        state.value.ongoingRouteId?.let {
+            ongoingRoutePhotosJob = viewModelScope.launch {
+                observeRouteWithPhotoMetadataUseCase(routeId = it).collect { routeWithPhotoMetadata ->
+                    state.update { state ->
+                        state.copy(photos = routeWithPhotoMetadata.photoMetadata.toPersistentList())
+                    }
+                }
+            }
+        }
     }
 
     data class State(
