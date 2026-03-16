@@ -17,13 +17,17 @@ interface RouteDao {
     @Update
     suspend fun updateRoute(route: RouteEntity)
 
-    @Transaction
-    @Query("SELECT * FROM routes ORDER BY created_at DESC")
-    fun observeAllRoutesWithPhotos(): Flow<List<RouteWithPhotoMetadata>>
-
     @Query("SELECT * FROM routes WHERE routeId = :routeId")
     suspend fun getRouteById(routeId: Long): RouteEntity?
 
     @Query("DELETE FROM routes WHERE routeId = :routeId")
     suspend fun deleteRouteById(routeId: Long)
+
+    @Transaction
+    @Query("SELECT * FROM routes WHERE routeId = :routeId")
+    fun observeRouteWithPhotosById(routeId: Long): Flow<RouteWithPhotoMetadataEntity?>
+
+    @Transaction
+    @Query("SELECT * FROM routes ORDER BY created_at DESC")
+    fun observeAllRoutesWithPhotos(): Flow<List<RouteWithPhotoMetadataEntity>>
 }

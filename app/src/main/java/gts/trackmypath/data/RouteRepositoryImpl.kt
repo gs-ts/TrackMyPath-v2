@@ -3,8 +3,13 @@ package gts.trackmypath.data
 import android.util.Log
 import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
+import gts.trackmypath.data.database.route.toDomain
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.RouteRepository
+import gts.trackmypath.domain.route.RouteWithPhotoMetadata
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
 
 class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : RouteRepository {
@@ -46,5 +51,19 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
     override suspend fun deleteRoute(routeId: RouteId) {
         Log.d("RouteRepository", "deleteRoute with routeId ${routeId.id}")
         routeDao.deleteRouteById(routeId = routeId.id)
+    }
+
+    override fun observeRouteWithPhotoMetadataById(routeId: RouteId): Flow<RouteWithPhotoMetadata> {
+        Log.d("RouteRepository", "observeRouteWithPhotoMetadataById with routeId ${routeId.id}")
+        return routeDao.observeRouteWithPhotosById(routeId = routeId.id)
+            .mapNotNull { routeWithPhotoMetadataEntity ->
+                routeWithPhotoMetadataEntity?.let {
+                    val sortedPhotoMetadata = it.photoMetadata.sortedByDescending { photoMetadataEntity ->
+                        photoMetadataEntity.createdAt
+                    }
+                    it.copy(photoMetadata = sortedPhotoMetadata).toDomain()
+                }
+            }
+            .distinctUntilChanged()
     }
 }
