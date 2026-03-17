@@ -11,6 +11,7 @@ secrets-gradle-plugin = "2.0.1"
 core-ktx = "1.18.0"
 lifecycle = "2.11.0-alpha02"
 activity-compose = "1.13.0"
+compose-foundation = "1.11.0-beta01"
 compose-ui = "1.11.0-beta01"
 google-material = "1.13.0"
 compose-material3 = "1.5.0-alpha15"
@@ -40,6 +41,7 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 google-places = { group = "com.google.android.libraries.places", name = "places", version.ref = "google-places" }
 google-material = { group = "com.google.android.material", name = "material", version.ref = "google-material" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "compose-foundation" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "compose-material3" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
