@@ -54,9 +54,12 @@ configure<ApplicationExtension> {
 }
 
 kotlin {
+    jvmToolchain(jdkVersion = 17)
     compilerOptions {
         // https://kotlinlang.org/docs/whatsnew23.html#explicit-backing-fields
         freeCompilerArgs.add("-Xexplicit-backing-fields")
+        // https://kotlinlang.org/docs/whatsnew22.html#language
+        freeCompilerArgs.add("-Xcontext-parameters")
     }
 }
 
@@ -93,14 +96,15 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.material3.adaptive.navigation)
+    implementation(libs.androidx.lifecycle.service)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.accompanist.permissions)
     implementation(libs.google.material)
     implementation(libs.play.services.location)
     implementation(libs.google.places)
-    implementation(libs.androidx.lifecycle.service)
 
     implementation(libs.coil3.compose)
     implementation(libs.coil3.network)
@@ -115,7 +119,7 @@ dependencies {
     testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.kotlin.coroutines.test)
     testImplementation(libs.androidx.viewmodel.testing)
-    implementation(libs.androidx.room.testing)
+    testImplementation(libs.androidx.room.testing)
     testImplementation(libs.app.cash.turbine)
 
     androidTestImplementation(libs.androidx.junit)
