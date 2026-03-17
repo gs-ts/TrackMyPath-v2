@@ -33,41 +33,52 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
                 latLng = LatLng(location.latitude, location.longitude)
             )
 
-            if (places.isNotEmpty()) {
-                val firstPlace = places.first()
-                Log.d("PhotoMetadataRepository", "fetchPhotoMetadataForLocation found first place $firstPlace")
-
-                firstPlace.id?.let { placeId ->
-                    val photoMetadata = firstPlace.photoMetadatas
-
-                    photoMetadata?.let {
-                        val photoUri = googlePlacesClient.fetchPhotoUri(
-                            photoMetadatas = firstPlace.photoMetadatas
-                        )
-                        photoUri?.let {
-                            photoMetadataDao.insert(
-                                photoMetadataEntity = PhotoMetadataEntity(
-                                    routeId = routeId.id,
-                                    placeId = placeId,
-                                    displayName = firstPlace.displayName,
-                                    location = PhotoMetadataEntity.Location(
-                                        latitude = location.latitude,
-                                        longitude = location.longitude
-                                    ),
-                                    photoUri = photoUri.toString(),
-                                    googleMapsUri = firstPlace.googleMapsUri?.toString(),
-                                    generativeSummary = firstPlace.generativeSummary?.overview,
-                                    neighborhoodSummary = firstPlace.neighborhoodSummary?.overview?.content
-                                )
-                            )
-                            Result.success(Unit)
-                        } ?: Result.failure(exception = PhotoMetadataUnavailableException("No photoUri available"))
-                    } ?: Result.failure(exception = PhotoMetadataUnavailableException("No photoMetadata available"))
-                } ?: Result.failure(exception = PlacesUnavailableException("No first place available"))
-            } else {
+            if (places.isEmpty()) { // first check: no places available
                 Log.e("GooglePlacesClient", "No places available")
-                Result.failure(exception = PlacesUnavailableException())
+                return@withContext Result.failure(PlacesUnavailableException("No places available"))
             }
+
+            val validPlace = places.firstOrNull { place ->
+                val placeId = place.id ?: return@firstOrNull false
+                val hasPhotos = !place.photoMetadatas.isNullOrEmpty()
+
+                val alreadyExists = photoMetadataDao.existsForRoute(
+                    routeId = routeId.id,
+                    placeId = placeId
+                )
+
+                hasPhotos && !alreadyExists
+            }
+
+            if (validPlace == null) { // second check: at least one place with photos
+                return@withContext Result.failure(PhotoMetadataUnavailableException("No new places with photos found."))
+            }
+
+            Log.d("PhotoMetadataRepository", "fetchPhotoMetadataForLocation found valid place $validPlace")
+            val placeId = validPlace.id!! // Safe because we filtered nulls in the predicate
+
+            // third check: fetch photoUri
+            val photoUri = googlePlacesClient.fetchPhotoUri(photoMetadatas = validPlace.photoMetadatas)
+                ?: return@withContext Result.failure(PhotoMetadataUnavailableException("No photoUri available"))
+
+            // all checks passed, insert the entity
+            photoMetadataDao.insert(
+                photoMetadataEntity = PhotoMetadataEntity(
+                    routeId = routeId.id,
+                    placeId = placeId,
+                    displayName = validPlace.displayName,
+                    location = PhotoMetadataEntity.Location(
+                        latitude = location.latitude,
+                        longitude = location.longitude
+                    ),
+                    photoUri = photoUri.toString(),
+                    googleMapsUri = validPlace.googleMapsUri?.toString(),
+                    generativeSummary = validPlace.generativeSummary?.overview,
+                    neighborhoodSummary = validPlace.neighborhoodSummary?.overview?.content
+                )
+            )
+
+            Result.success(Unit)
         }
     }
 }
