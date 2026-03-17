@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
 @Composable
-fun NameRouteDialog(
+internal fun NameRouteDialog(
     routeName: String,
     onRouteNameChange: (String) -> Unit,
     onConfirmClick: () -> Unit,
@@ -39,13 +39,17 @@ fun NameRouteDialog(
                         .padding(horizontal = 16.dp)
                         .padding(bottom = 8.dp),
                 )
-                OutlinedTextField( // TODO: add size limit
+                OutlinedTextField(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     singleLine = true,
                     value = routeName,
-                    onValueChange = { onRouteNameChange(it) },
+                    onValueChange = { newValue ->
+                        if (newValue.length <= 50) { // 50 chars limit
+                            onRouteNameChange(newValue)
+                        }
+                    },
                     label = {
                         Text(text = "Name")
                     }

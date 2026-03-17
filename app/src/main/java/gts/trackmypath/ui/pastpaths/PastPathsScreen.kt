@@ -29,7 +29,6 @@ private fun PastPathsContent(modifier: Modifier = Modifier) {
             )
         },
         floatingActionButton = {
-            // TODO
         },
     ) { innerPadding ->
         Column(

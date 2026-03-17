@@ -4,28 +4,15 @@ import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.Intent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialogDefaults
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -97,7 +84,7 @@ private fun ActivePathContent(
     onConfirmNameRouteDialogClick: () -> Unit,
     onDismissNameRouteDialogClick: () -> Unit
 ) {
-    var shouldShowLocationPermissionRationaleRequestDialog by remember { mutableStateOf(false) }
+    var locationPermissionDialogType by remember { mutableStateOf(LocationPermissionDialogType.NONE) }
 
     val postNotificationPermission = rememberPermissionState(permission = POST_NOTIFICATIONS)
     LaunchedEffect(key1 = true) {
@@ -114,14 +101,16 @@ private fun ActivePathContent(
         }
     }
 
-    if (shouldShowLocationPermissionRationaleRequestDialog) {
+    if (locationPermissionDialogType != LocationPermissionDialogType.NONE) {
         LocationPermissionRequestDialog(
+            isUpgradeFromCoarseToFine = locationPermissionDialogType == LocationPermissionDialogType.UPGRADE_TO_FINE,
             onConfirmClick = {
-                shouldShowLocationPermissionRationaleRequestDialog = false
+                locationPermissionDialogType = LocationPermissionDialogType.NONE
                 locationPermissionsState.launchMultiplePermissionRequest()
             },
             onDismissRequest = {
-                shouldShowLocationPermissionRationaleRequestDialog = false
+                // if user refuses precise, they cannot track.
+                locationPermissionDialogType = LocationPermissionDialogType.NONE
             },
         )
     }
@@ -147,21 +136,31 @@ private fun ActivePathContent(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    val isFineLocationGranted = locationPermissionsState.permissions.find {
-                        it.permission == ACCESS_FINE_LOCATION
-                    }?.status?.isGranted == true
+                    val isFineGranted = locationPermissionsState.permissions.any {
+                        it.permission == ACCESS_FINE_LOCATION && it.status.isGranted
+                    }
+                    val isCoarseGranted = locationPermissionsState.permissions.any {
+                        it.permission == ACCESS_COARSE_LOCATION && it.status.isGranted
+                    }
 
-                    val isCoarseLocationGranted = locationPermissionsState.permissions.find {
-                        it.permission == ACCESS_COARSE_LOCATION
-                    }?.status?.isGranted == true
+                    when {
+                        isFineGranted -> {
+                            onTrackPathClick()
+                        }
 
-                    if (isFineLocationGranted) {
-                        onTrackPathClick()
-                    } else if (isCoarseLocationGranted) {
-                        // Inform the user that fine location provides better results.
-                        shouldShowLocationPermissionRationaleRequestDialog = true // TODO: unused?
-                    } else {
-                        shouldShowLocationPermissionRationaleRequestDialog = true
+                        isCoarseGranted -> {
+                            // They have coarse. Show dialog to upgrade to fine.
+                            locationPermissionDialogType = LocationPermissionDialogType.UPGRADE_TO_FINE
+                        }
+
+                        else -> {
+                            // No permissions granted yet.
+                            if (locationPermissionsState.shouldShowRationale) {
+                                locationPermissionDialogType = LocationPermissionDialogType.REQUIRE_ALL
+                            } else {
+                                locationPermissionsState.launchMultiplePermissionRequest()
+                            }
+                        }
                     }
                 },
             ) {
@@ -213,44 +212,10 @@ private fun PhotoStream(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LocationPermissionRequestDialog(
-    onConfirmClick: () -> Unit,
-    onDismissRequest: () -> Unit,
-) {
-    BasicAlertDialog(
-        content = {
-            Surface(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = AlertDialogDefaults.TonalElevation,
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Use precise location for better results.")
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        TextButton(
-                            onClick = onDismissRequest,
-                        ) {
-                            Text("Dismiss")
-                        }
-                        TextButton(
-                            onClick = onConfirmClick,
-                        ) {
-                            Text("Confirm")
-                        }
-                    }
-                }
-            }
-        },
-        onDismissRequest = onDismissRequest,
-    )
+private enum class LocationPermissionDialogType {
+    NONE,
+    REQUIRE_ALL,
+    UPGRADE_TO_FINE
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
