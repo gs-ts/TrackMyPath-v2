@@ -2,8 +2,9 @@ package gts.trackmypath.ui
 
 import androidx.compose.runtime.Composable
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.navigation3.runtime.NavEntry
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
@@ -23,25 +24,22 @@ fun NavigationHost() {
 
     NavDisplay(
         backStack = backStack,
-        entryDecorators = listOf(
-            rememberSaveableStateHolderNavEntryDecorator()
-        ),
-        entryProvider = { key ->
-            when (key) {
-                FeedRoute -> {
-                    NavEntry(key = key) {
-                        ActivePathScreen(viewModel = hiltViewModel())
-                    }
-                }
-                PastPathsRoute -> {
-                    NavEntry(key = key) {
-                        PastPathsScreen()
-                    }
-                }
-                else -> {
-                    throw RuntimeException("Invalid NavKey")
-                }
+        onBack = {
+            if (backStack.size > 1) {
+                backStack.removeAt(backStack.lastIndex)
             }
         },
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()
+        ),
+        entryProvider = entryProvider {
+            entry<FeedRoute> {
+                ActivePathScreen(viewModel = hiltViewModel())
+            }
+            entry<PastPathsRoute> {
+                PastPathsScreen()
+            }
+        }
     )
 }
