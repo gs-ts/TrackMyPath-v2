@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -61,23 +62,32 @@ class LocationService : Service() {
             return START_STICKY
         }
 
-        serviceStateHolder.setServiceRunning(isRunning = true)
         val routeId = intent?.getLongExtra("EXTRA_ROUTE_ID", -1L)
-        routeId?.let {
+        if (routeId != null && routeId != -1L) {
             startForegroundLocationService(routeId = routeId)
+            serviceStateHolder.setServiceRunning(true)
+        } else {
+            stopSelf() // kill the service if it was started without a valid routeId
         }
+
         return START_STICKY
     }
 
     @Suppress("TooGenericExceptionCaught")
     private fun startForegroundLocationService(routeId: Long) {
         try {
-            startForeground(NOTIFICATION_ID, getServiceNotification())
+            startForeground(
+                NOTIFICATION_ID,
+                getServiceNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+            )
+
             if (locationUpdatesJob == null) {
                 collectLocationUpdates(routeId = routeId)
             }
         } catch (exception: Exception) {
             Log.e("LocationService", "Failed to start foreground service", exception)
+            serviceStateHolder.setServiceRunning(false) // Reset state if it crashes
         }
     }
 
@@ -114,7 +124,7 @@ class LocationService : Service() {
         super.onDestroy()
     }
 
-    private fun arePermissionsGranted(): Boolean { // TODO other permissions?
+    private fun arePermissionsGranted(): Boolean {
         val fineLocationPermission = PermissionChecker.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_FINE_LOCATION
