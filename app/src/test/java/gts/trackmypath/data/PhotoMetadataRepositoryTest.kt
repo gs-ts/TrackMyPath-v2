@@ -1,4 +1,4 @@
-package gts.trackmypath
+package gts.trackmypath.data
 
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.AuthorAttribution
@@ -6,7 +6,6 @@ import com.google.android.libraries.places.api.model.AuthorAttributions
 import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
 import gts.trackmypath.data.network.GooglePlacesClient
-import gts.trackmypath.data.PhotoMetadataRepositoryImpl
 import gts.trackmypath.data.database.photometadata.PhotoMetadataDao
 import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.domain.PlacesUnavailableException
