@@ -42,7 +42,7 @@ class LocationProvider @Inject constructor(
         TimeUnit.SECONDS.toMillis(INTERVAL_TIME.toLong()),
     )
         .setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(FASTEST_INTERVAL_TIME.toLong()))
-        .setMinUpdateDistanceMeters(SMALLEST_DISPLACEMENT_15_METERS)
+        .setMinUpdateDistanceMeters(SMALLEST_DISPLACEMENT_30_METERS)
         .build()
 
     @SuppressLint("MissingPermission")
@@ -80,8 +80,8 @@ class LocationProvider @Inject constructor(
     fun locationFlow(): Flow<Location> = locationUpdates
 
     companion object {
-        private const val SMALLEST_DISPLACEMENT_15_METERS = 15F
-        private const val INTERVAL_TIME = 10
-        private const val FASTEST_INTERVAL_TIME = 5
+        private const val SMALLEST_DISPLACEMENT_30_METERS = 30F
+        private const val INTERVAL_TIME = 30
+        private const val FASTEST_INTERVAL_TIME = 15
     }
 }
