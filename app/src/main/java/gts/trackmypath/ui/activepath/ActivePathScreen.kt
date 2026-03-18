@@ -5,6 +5,8 @@ import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,19 +17,26 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.ColorImage
+import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePreviewHandler
+import coil3.compose.LocalAsyncImagePreviewHandler
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -57,6 +66,7 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
                 }
                 context.startService(locationServiceIntent)
             }
+
             TrackingState.STOPPED -> {
                 context.stopService(locationServiceIntent)
             }
@@ -203,10 +213,12 @@ private fun PhotoStream(
         ) { photo ->
             AsyncImage(
                 model = photo.photoUri,
-                contentDescription = "image of pokemon",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-//                placeholder = painterResource(id = R.drawable.loading),
+                contentDescription = photo.generativeSummary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .padding(vertical = 4.dp),
+                contentScale = ContentScale.Crop
             )
         }
     }
@@ -218,10 +230,9 @@ private enum class LocationPermissionDialogType {
     UPGRADE_TO_FINE
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Preview(showSystemUi = true)
 @Composable
-private fun ActivePathPreview() {
+private fun ActivePathStoppedPreview() {
     ActivePathContent(
         state = ActivePathViewModel.State(
             photos = persistentListOf(),
@@ -232,4 +243,50 @@ private fun ActivePathPreview() {
         onConfirmNameRouteDialogClick = {},
         onDismissNameRouteDialogClick = {}
     )
+}
+
+@OptIn(ExperimentalCoilApi::class)
+@Preview(showSystemUi = true)
+@Composable
+private fun ActivePathStartedPreview() {
+    val previewHandler = AsyncImagePreviewHandler { request ->
+        when (request.data) {
+            "https://example.com/1.jpg" -> ColorImage(Color.Red.toArgb())
+            "https://example.com/2.jpg" -> ColorImage(Color.Green.toArgb())
+            "https://example.com/3.jpg" -> ColorImage(Color.Blue.toArgb())
+            else -> ColorImage(Color.Gray.toArgb())
+        }
+    }
+
+    CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
+        ActivePathContent(
+            state = ActivePathViewModel.State(
+                photos = persistentListOf(
+                    PhotoMetadata(
+                        id = 1L,
+                        placeId = "p1",
+                        photoUri = "https://example.com/1.jpg",
+                        location = PhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+                    ),
+                    PhotoMetadata(
+                        id = 2L,
+                        placeId = "p2",
+                        photoUri = "https://example.com/2.jpg",
+                        location = PhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+                    ),
+                    PhotoMetadata(
+                        id = 3L,
+                        placeId = "p3",
+                        photoUri = "https://example.com/3.jpg",
+                        location = PhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+                    )
+                ),
+            ),
+            trackingState = TrackingState.STARTED,
+            onTrackPathClick = {},
+            onRouteNameChange = {},
+            onConfirmNameRouteDialogClick = {},
+            onDismissNameRouteDialogClick = {}
+        )
+    }
 }
