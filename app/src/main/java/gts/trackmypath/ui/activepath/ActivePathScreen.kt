@@ -45,9 +45,6 @@ import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import gts.trackmypath.ui.service.LocationService
-import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toImmutableList
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -196,7 +193,7 @@ private fun ActivePathContent(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(12.dp),
-            photos = state.photos.toImmutableList()
+            photos = state.photos
         )
     }
 }
@@ -204,7 +201,8 @@ private fun ActivePathContent(
 @Composable
 private fun PhotoStream(
     modifier: Modifier = Modifier,
-    photos: ImmutableList<PhotoMetadata>
+    // reason: https://proandroiddev.com/compose-stability-analyzer-real-time-stability-insights-for-jetpack-compose-1399924a0a64
+    photos: List<PhotoMetadata>
 ) {
     LazyColumn(modifier = modifier) {
         items(
@@ -235,7 +233,7 @@ private enum class LocationPermissionDialogType {
 private fun ActivePathStoppedPreview() {
     ActivePathContent(
         state = ActivePathViewModel.State(
-            photos = persistentListOf(),
+            photos = emptyList(),
         ),
         trackingState = TrackingState.STOPPED,
         onTrackPathClick = {},
@@ -261,7 +259,7 @@ private fun ActivePathStartedPreview() {
     CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
         ActivePathContent(
             state = ActivePathViewModel.State(
-                photos = persistentListOf(
+                photos = listOf(
                     PhotoMetadata(
                         id = 1L,
                         placeId = "p1",

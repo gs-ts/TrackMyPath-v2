@@ -12,9 +12,6 @@ import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.StartRouteUseCase
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import gts.trackmypath.ui.service.ServiceStateHolder
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +37,7 @@ class ActivePathViewModel @Inject constructor(
     private var ongoingRoutePhotosJob: Job? = null
 
     init {
-        observeServiceEvents()
+        observeLocationServiceEvents()
     }
 
     fun onTrackPathClick() {
@@ -94,7 +91,7 @@ class ActivePathViewModel @Inject constructor(
                 ongoingRouteId = null,
                 showNameRouteDialog = false,
                 routeNameInput = "",
-                photos = persistentListOf() // clear the photo stream
+                photos = emptyList() // clear the photo stream
             )
         }
     }
@@ -111,14 +108,14 @@ class ActivePathViewModel @Inject constructor(
                     ongoingRouteId = null,
                     showNameRouteDialog = false,
                     routeNameInput = "",
-                    photos = persistentListOf() // clear the photo stream
+                    photos = emptyList() // clear the photo stream
                 )
             }
         }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun observeServiceEvents() {
+    private fun observeLocationServiceEvents() {
         viewModelScope.launch {
             serviceStateHolder.isServiceRunning
                 .collectLatest { isServiceRunning ->
@@ -145,11 +142,11 @@ class ActivePathViewModel @Inject constructor(
     }
 
     private fun observeOngoingRoutePhotos() {
-        state.value.ongoingRouteId?.let {
+        state.value.ongoingRouteId?.let { ongoingRouteId ->
             ongoingRoutePhotosJob = viewModelScope.launch {
-                observeRouteWithPhotoMetadataUseCase(routeId = it).collect { routeWithPhotoMetadata ->
+                observeRouteWithPhotoMetadataUseCase(routeId = ongoingRouteId).collect { routeWithPhotoMetadata ->
                     state.update { state ->
-                        state.copy(photos = routeWithPhotoMetadata.photoMetadata.toPersistentList())
+                        state.copy(photos = routeWithPhotoMetadata.photoMetadata)
                     }
                 }
             }
@@ -158,7 +155,7 @@ class ActivePathViewModel @Inject constructor(
 
     data class State(
         val trackingState: TrackingState = TrackingState.STOPPED,
-        val photos: PersistentList<PhotoMetadata> = persistentListOf(),
+        val photos: List<PhotoMetadata> = emptyList(),
         val showNameRouteDialog: Boolean = false,
         val ongoingRouteId: RouteId? = null,
         val routeNameInput: String = ""
