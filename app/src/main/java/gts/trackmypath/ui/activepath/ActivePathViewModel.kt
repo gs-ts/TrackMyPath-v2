@@ -7,11 +7,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.DeletePendingRouteUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
-import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataUseCase
+import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataContract
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.StartRouteUseCase
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import gts.trackmypath.ui.service.ServiceStateHolder
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +30,7 @@ class ActivePathViewModel @Inject constructor(
     private val startRouteUseCase: StartRouteUseCase,
     private val finishRouteUseCase: FinishRouteUseCase,
     private val deletePendingRouteUseCase: DeletePendingRouteUseCase,
-    private val observeRouteWithPhotoMetadataUseCase: ObserveRouteWithPhotoMetadataUseCase
+    private val observeRouteWithPhotoMetadataUseCase: ObserveRouteWithPhotoMetadataContract
 ) : ViewModel() {
 
     val state: StateFlow<State>
@@ -91,7 +94,7 @@ class ActivePathViewModel @Inject constructor(
                 ongoingRouteId = null,
                 showNameRouteDialog = false,
                 routeNameInput = "",
-                photos = emptyList() // clear the photo stream
+                photos = persistentListOf() // clear the photo stream
             )
         }
     }
@@ -108,7 +111,7 @@ class ActivePathViewModel @Inject constructor(
                     ongoingRouteId = null,
                     showNameRouteDialog = false,
                     routeNameInput = "",
-                    photos = emptyList() // clear the photo stream
+                    photos = persistentListOf() // clear the photo stream
                 )
             }
         }
@@ -144,18 +147,19 @@ class ActivePathViewModel @Inject constructor(
     private fun observeOngoingRoutePhotos() {
         state.value.ongoingRouteId?.let { ongoingRouteId ->
             ongoingRoutePhotosJob = viewModelScope.launch {
-                observeRouteWithPhotoMetadataUseCase(routeId = ongoingRouteId).collect { routeWithPhotoMetadata ->
-                    state.update { state ->
-                        state.copy(photos = routeWithPhotoMetadata.photoMetadata)
+                observeRouteWithPhotoMetadataUseCase(routeId = ongoingRouteId)
+                    .collect { routeWithPhotoMetadata ->
+                        state.update { currentState ->
+                            currentState.copy(photos = routeWithPhotoMetadata.photoMetadata.toPersistentList())
+                        }
                     }
-                }
             }
         }
     }
 
     data class State(
         val trackingState: TrackingState = TrackingState.STOPPED,
-        val photos: List<PhotoMetadata> = emptyList(),
+        val photos: PersistentList<PhotoMetadata> = persistentListOf(),
         val showNameRouteDialog: Boolean = false,
         val ongoingRouteId: RouteId? = null,
         val routeNameInput: String = ""

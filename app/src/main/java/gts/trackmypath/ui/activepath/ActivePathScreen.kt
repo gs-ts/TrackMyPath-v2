@@ -4,12 +4,15 @@ import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.Intent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -28,7 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +51,8 @@ import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
 import gts.trackmypath.ui.service.LocationService
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -132,7 +140,8 @@ private fun ActivePathContent(
     }
 
     Scaffold(
-        modifier = modifier,
+        // https://developer.android.com/develop/ui/compose/testing/interoperability
+        modifier = modifier.semantics { testTagsAsResourceId = true },
         topBar = {
             TopAppBar(
                 title = {
@@ -142,6 +151,7 @@ private fun ActivePathContent(
         },
         floatingActionButton = {
             FloatingActionButton(
+                modifier = Modifier.testTag("start_tracking_fab"),
                 onClick = {
                     val isFineGranted = locationPermissionsState.permissions.any {
                         it.permission == ACCESS_FINE_LOCATION && it.status.isGranted
@@ -201,23 +211,40 @@ private fun ActivePathContent(
 @Composable
 private fun PhotoStream(
     modifier: Modifier = Modifier,
-    // reason: https://proandroiddev.com/compose-stability-analyzer-real-time-stability-insights-for-jetpack-compose-1399924a0a64
-    photos: List<PhotoMetadata>
+    photos: ImmutableList<PhotoMetadata>
 ) {
-    LazyColumn(modifier = modifier) {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(photos.size) {
+        if (photos.isNotEmpty()) {
+            listState.animateScrollToItem(index = 0)
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier.testTag("photo_list_scrollable")
+    ) {
         items(
             items = photos,
-            key = { photo -> photo.id }
+            key = { photo -> photo.id },
+            contentType = { "photo_item" }
         ) { photo ->
-            AsyncImage(
-                model = photo.photoUri,
-                contentDescription = photo.generativeSummary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .padding(vertical = 4.dp),
-                contentScale = ContentScale.Crop
-            )
+            Column {
+                AsyncImage(
+                    model = photo.photoUri,
+                    contentDescription = photo.generativeSummary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .padding(vertical = 4.dp),
+                    contentScale = ContentScale.Crop
+                )
+                Row {
+                    Text("image: ${photo.id}")
+                    Text("image: ${photo.generativeSummary}")
+                }
+            }
         }
     }
 }
@@ -233,7 +260,7 @@ private enum class LocationPermissionDialogType {
 private fun ActivePathStoppedPreview() {
     ActivePathContent(
         state = ActivePathViewModel.State(
-            photos = emptyList(),
+            photos = persistentListOf(),
         ),
         trackingState = TrackingState.STOPPED,
         onTrackPathClick = {},
@@ -259,7 +286,7 @@ private fun ActivePathStartedPreview() {
     CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
         ActivePathContent(
             state = ActivePathViewModel.State(
-                photos = listOf(
+                photos = persistentListOf(
                     PhotoMetadata(
                         id = 1L,
                         placeId = "p1",
