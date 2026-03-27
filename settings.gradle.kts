@@ -31,3 +31,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Track My Path v2"
 include(":app")
+include(":benchmark")
