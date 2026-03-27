@@ -4,7 +4,6 @@ import app.cash.turbine.test
 import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
-import gts.trackmypath.data.database.route.RouteWithPhotoMetadataEntity
 import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -26,11 +25,23 @@ class RouteRepositoryTest {
     }
 
     @Test
-    fun `observeRouteWithPhotoMetadataById filters nulls, sorts photos descending, and applies distinctUntilChanged`() =
+    fun `observeRouteWithPhotoMetadataById filters empty maps and applies distinctUntilChanged`() =
         runTest {
             val routeId = RouteId(1L)
             val routeEntity = RouteEntity(routeId = 1L, displayName = "Test Route")
 
+            val photoNew = PhotoMetadataEntity(
+                id = 101L,
+                routeId = 1L,
+                placeId = "p2",
+                createdAt = 5000L,
+                displayName = null,
+                location = PhotoMetadataEntity.Location(0.0, 0.0),
+                photoUri = "uri2",
+                googleMapsUri = null,
+                generativeSummary = null,
+                neighborhoodSummary = null
+            )
             val photoOld = PhotoMetadataEntity(
                 id = 100L,
                 routeId = 1L,
@@ -43,53 +54,39 @@ class RouteRepositoryTest {
                 generativeSummary = null,
                 neighborhoodSummary = null
             )
-            val photoNew = PhotoMetadataEntity(
-                id = 101L,
-                routeId = 1L,
-                placeId = "p2",
-                createdAt = 5000L, // Newer
-                displayName = null,
-                location = PhotoMetadataEntity.Location(0.0, 0.0),
-                photoUri = "uri2",
-                googleMapsUri = null,
-                generativeSummary = null,
-                neighborhoodSummary = null
-            )
 
-            val entityWithUnsortedPhotos = RouteWithPhotoMetadataEntity(
-                route = routeEntity,
-                photoMetadata = listOf(photoOld, photoNew) // unsorted in DB response
+            val routeMapFromDb = mapOf(
+                routeEntity to listOf(photoNew, photoOld) // Simulated DB response (already sorted via SQL)
             )
 
             routeRepository.observeRouteWithPhotoMetadataById(routeId).test {
-                routeDao.dbStream.emit(entityWithUnsortedPhotos)
+                routeDao.dbStream.emit(routeMapFromDb)
 
                 val firstEmission = awaitItem()
                 assertEquals("Test Route", firstEmission.displayName)
 
-                // Verify Sorting: The newer photo (5000L) should be first
+                // Verify Mapping (ensuring it matches the flow emitted by DB Fake)
                 assertEquals(101L, firstEmission.photoMetadata[0].id)
                 assertEquals(100L, firstEmission.photoMetadata[1].id)
 
                 // emit the EXACT same entity again to test distinctUntilChanged
-                routeDao.dbStream.emit(entityWithUnsortedPhotos)
+                routeDao.dbStream.emit(routeMapFromDb)
 
-                // emit a null to test mapNotNull
-                routeDao.dbStream.emit(null)
+                // emit an empty map to test dropping empty results
+                routeDao.dbStream.emit(emptyMap())
 
                 // emit a new entity to ensure the flow is still active
                 val updatedRouteEntity = routeEntity.copy(displayName = "Updated Route")
                 routeDao.dbStream.emit(
-                    RouteWithPhotoMetadataEntity(
-                        updatedRouteEntity,
-                        emptyList()
+                    mapOf(
+                        updatedRouteEntity to emptyList()
                     )
                 )
 
                 val secondEmission = awaitItem()
                 assertEquals("Updated Route", secondEmission.displayName)
 
-                // verify no other items were emitted (proving distinct and null drops worked)
+                // verify no other items were emitted (proving distinct and empty map drops worked)
                 expectNoEvents()
             }
         }
@@ -99,7 +96,7 @@ internal class RouteDaoFake : RouteDao {
 
     // SharedFlow with replay = 1 mimics Room's behavior of emitting the latest
     // cached value immediately upon subscription, while allowing identical emissions.
-    val dbStream = MutableSharedFlow<RouteWithPhotoMetadataEntity?>(replay = 1)
+    val dbStream = MutableSharedFlow<Map<RouteEntity, List<PhotoMetadataEntity>>>(replay = 1)
 
     override suspend fun insertRoute(route: RouteEntity): Long = 0L
 
@@ -109,11 +106,11 @@ internal class RouteDaoFake : RouteDao {
 
     override suspend fun deleteRouteById(routeId: Long) {}
 
-    override fun observeRouteWithPhotosById(routeId: Long): Flow<RouteWithPhotoMetadataEntity?> {
+    override fun observeRouteWithPhotosMap(routeId: Long): Flow<Map<RouteEntity, List<PhotoMetadataEntity>>> {
         return dbStream
     }
 
-    override fun observeAllRoutesWithPhotos(): Flow<List<RouteWithPhotoMetadataEntity>> {
+    override fun observeAllRoutesWithPhotos(): Flow<Map<RouteEntity, List<PhotoMetadataEntity>>> {
         return emptyFlow()
     }
 }
