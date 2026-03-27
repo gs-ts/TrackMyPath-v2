@@ -28,13 +28,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "track-my-path-db"
         )
-            .addCallback(object : RoomDatabase.Callback() {
-                override fun onOpen(db: SupportSQLiteDatabase) {
-                    super.onOpen(db)
-                    // Clean up unfinished routes (where displayName was never set).
-                    db.execSQL("DELETE FROM routes WHERE display_name IS NULL")
-                }
-            })
+            .addCallback(CleanupUnfinishedRoutesCallback)
             // .fallbackToDestructiveMigration() // Use only during dev if you change schema often
             .build()
     }
@@ -47,5 +41,13 @@ object DatabaseModule {
     @Provides
     fun provideRouteDao(database: AppDatabase): RouteDao {
         return database.routeDao()
+    }
+}
+
+object CleanupUnfinishedRoutesCallback : RoomDatabase.Callback() {
+    override fun onOpen(db: SupportSQLiteDatabase) {
+        super.onOpen(db)
+        // Clean up unfinished routes (where displayName was never set).
+        db.execSQL("DELETE FROM routes WHERE route_display_name IS NULL")
     }
 }
