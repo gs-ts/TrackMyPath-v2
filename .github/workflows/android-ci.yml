@@ -29,8 +29,8 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
-    - name: Run Detekt (detektDebug)
-      run: ./gradlew detektDebug
+    - name: Run Detekt (debug)
+      run: ./gradlew detektDebugSourceSet
 
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest
