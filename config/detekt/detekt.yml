@@ -286,7 +286,7 @@ naming:
     excludeClassPattern: '$^'
   FunctionNameMaxLength:
     active: true
-    maximumFunctionNameLength: 36
+    maximumFunctionNameLength: 42
   InvalidPackageDeclaration:
     active: true
     rootPackage: ''
