@@ -26,6 +26,15 @@
           </targets>
         </DialogSelection>
       </SelectionState>
+      <SelectionState runConfigName="PhotoStreamBenchmark">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="benchmarkNewPhotoArrivalDuringScroll()">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
+      <SelectionState runConfigName="CleanupUnfinishedRoutesCallbackTest">
+        <option name="selectionMode" value="DROPDOWN" />
+      </SelectionState>
     </selectionStates>
   </component>
 </project>
