@@ -9,6 +9,7 @@ import gts.trackmypath.domain.route.RouteRepository
 import gts.trackmypath.domain.route.RouteWithPhotoMetadata
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
 
@@ -57,11 +58,11 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
         Log.d("RouteRepository", "observeRouteWithPhotoMetadataById with routeId ${routeId.id}")
 
         return routeDao.observeRouteWithPhotosMap(routeId = routeId.id)
-            .mapNotNull { routeMap ->
-                if (routeMap.isEmpty()) return@mapNotNull null
+            .mapNotNull { routeWithPhotoMetadataMap ->
+                if (routeWithPhotoMetadataMap.isEmpty()) return@mapNotNull null
 
                 // since we query by a specific routeId, the Map will only ever have exactly 1 entry.
-                val entry = routeMap.entries.first()
+                val entry = routeWithPhotoMetadataMap.entries.first()
                 val routeEntity = entry.key
                 val preSortedPhotos = entry.value
 
@@ -77,17 +78,22 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
             .distinctUntilChanged()
     }
 
-//    override fun observeRouteWithPhotoMetadataById(routeId: RouteId): Flow<RouteWithPhotoMetadata> {
-//        Log.d("RouteRepository", "observeRouteWithPhotoMetadataById with routeId ${routeId.id}")
-//        return routeDao.observeRouteWithPhotosById(routeId = routeId.id)
-//            .mapNotNull { routeWithPhotoMetadataEntity ->
-//                routeWithPhotoMetadataEntity?.let {
-//                    val sortedPhotoMetadata = it.photoMetadata.sortedByDescending { photoMetadataEntity ->
-//                        photoMetadataEntity.createdAt
-//                    }
-//                    it.copy(photoMetadata = sortedPhotoMetadata).toDomain()
-//                }
-//            }
-//            .distinctUntilChanged()
-//    }
+    override fun observeRoutesWithPhotoMetadata(): Flow<List<RouteWithPhotoMetadata>> {
+        Log.d("RouteRepository", "observeRoutesWithPhotoMetadata")
+
+        return routeDao.observeAllRoutesWithPhotos()
+            .map { routeWithPhotoMetadataMap ->
+                routeWithPhotoMetadataMap.map { (routeEntity, photoEntities) ->
+
+                    RouteWithPhotoMetadata(
+                        routeId = RouteId(id = routeEntity.routeId),
+                        displayName = routeEntity.displayName,
+                        metadata = routeEntity.metadata,
+                        photoMetadata = photoEntities.map { photoEntity ->
+                            photoEntity.toDomain()
+                        }
+                    )
+                }
+            }
+    }
 }

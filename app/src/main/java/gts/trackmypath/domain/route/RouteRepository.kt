@@ -17,6 +17,8 @@ interface RouteRepository {
     suspend fun deleteRoute(routeId: RouteId)
 
     fun observeRouteWithPhotoMetadataById(routeId: RouteId): Flow<RouteWithPhotoMetadata>
+
+    fun observeRoutesWithPhotoMetadata(): Flow<List<RouteWithPhotoMetadata>>
 }
 
 @JvmInline
