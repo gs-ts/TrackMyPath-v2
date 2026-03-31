@@ -48,6 +48,7 @@ fun PhotoMetadataEntity.toDomain() = PhotoMetadata(
         latitude = location.latitude,
         longitude = location.longitude
     ),
+    displayName = displayName,
     googleMapsUri = googleMapsUri,
     generativeSummary = generativeSummary,
     neighborhoodSummary = neighborhoodSummary,

@@ -5,6 +5,7 @@ data class PhotoMetadata(
     val placeId: String,
     val photoUri: String,
     val location: Location,
+    val displayName: String? = null,
     val googleMapsUri: String? = null,
     val generativeSummary: String? = null,
     val neighborhoodSummary: String? = null,
