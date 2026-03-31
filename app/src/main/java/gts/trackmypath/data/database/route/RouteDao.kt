@@ -49,6 +49,7 @@ interface RouteDao {
     @Query("""
     SELECT * FROM routes 
     LEFT JOIN photo_metadata ON routes.routeId = photo_metadata.route_id 
+    WHERE routes.route_display_name IS NOT NULL  
     ORDER BY routes.route_created_at DESC, photo_metadata.photo_created_at DESC
 """)
     fun observeAllRoutesWithPhotos(): Flow<Map<RouteEntity, List<PhotoMetadataEntity>>>
