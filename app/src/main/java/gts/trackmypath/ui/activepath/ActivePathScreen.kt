@@ -4,9 +4,10 @@ import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.POST_NOTIFICATIONS
 import android.content.Intent
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,12 +15,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -28,20 +33,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.style.TextOverflow.Companion.Ellipsis
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.ColorImage
 import coil3.annotation.ExperimentalCoilApi
-import coil3.compose.AsyncImagePreviewHandler
 import coil3.compose.LocalAsyncImagePreviewHandler
 import coil3.compose.SubcomposeAsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -51,13 +53,19 @@ import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
+import gts.trackmypath.ui.mockdata.photoMetadataMock
+import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.service.LocationService
+import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun ActivePathScreen(viewModel: ActivePathViewModel) {
+fun ActivePathScreen(
+    viewModel: ActivePathViewModel,
+    onNavigateToPastRoutes: () -> Unit
+) {
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -85,7 +93,8 @@ fun ActivePathScreen(viewModel: ActivePathViewModel) {
         onTrackPathClick = viewModel::onTrackPathClick,
         onRouteNameChange = viewModel::onRouteNameChange,
         onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
-        onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick
+        onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick,
+        onNavigateToPastRoutes = onNavigateToPastRoutes
     )
 }
 
@@ -98,7 +107,8 @@ private fun ActivePathContent(
     onTrackPathClick: () -> Unit,
     onRouteNameChange: (String) -> Unit,
     onConfirmNameRouteDialogClick: () -> Unit,
-    onDismissNameRouteDialogClick: () -> Unit
+    onDismissNameRouteDialogClick: () -> Unit,
+    onNavigateToPastRoutes: () -> Unit
 ) {
     var locationPermissionDialogType by remember { mutableStateOf(LocationPermissionDialogType.NONE) }
 
@@ -144,10 +154,20 @@ private fun ActivePathContent(
         // https://developer.android.com/develop/ui/compose/testing/interoperability
         modifier = modifier.semantics { testTagsAsResourceId = true },
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
-                    Text("Path")
+                    Text(
+                        text = "track my path",
+                    )
                 },
+                actions = {
+                    IconButton(onClick = onNavigateToPastRoutes) {
+                        Icon(
+                            painter = painterResource(R.drawable.routes_icon),
+                            contentDescription = "Past Routes"
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -203,7 +223,7 @@ private fun ActivePathContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(12.dp),
+                .padding(horizontal = 24.dp),
             photos = state.photos
         )
     }
@@ -224,30 +244,50 @@ private fun PhotoStream(
 
     LazyColumn(
         state = listState,
-        modifier = modifier.testTag("photo_list_scrollable")
+        modifier = modifier.testTag("photo_list_scrollable"),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         items(
             items = photos,
             key = { photo -> photo.id },
             contentType = { "photo_item" }
         ) { photo ->
-            Column {
-                SubcomposeAsyncImage(
-                    model = photo.photoUri,
-                    contentDescription = photo.generativeSummary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .padding(vertical = 4.dp),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        Box(modifier = Modifier.fillMaxSize().shimmer())
-                    }
-                )
-                Row {
-                    Text("image: ${photo.id}")
-                    Text("image: ${photo.generativeSummary}")
+            PhotoCard(photo = photo)
+        }
+    }
+}
+
+@Composable
+private fun PhotoCard(photo: PhotoMetadata) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+            SubcomposeAsyncImage(
+                model = photo.photoUri,
+                contentDescription = photo.generativeSummary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .padding(vertical = 4.dp),
+                contentScale = ContentScale.Crop,
+                loading = {
+                    Box(modifier = Modifier.fillMaxSize().shimmer())
                 }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            if (photo.displayName != null) {
+                Text(
+                    text = photo.displayName,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = Ellipsis,
+                )
+            } else {
+                Text("no description available")
             }
         }
     }
@@ -259,63 +299,37 @@ private enum class LocationPermissionDialogType {
     UPGRADE_TO_FINE
 }
 
-@Preview(showSystemUi = true)
-@Composable
-private fun ActivePathStoppedPreview() {
-    ActivePathContent(
-        state = ActivePathViewModel.State(
-            photos = persistentListOf(),
-        ),
-        trackingState = TrackingState.STOPPED,
-        onTrackPathClick = {},
-        onRouteNameChange = {},
-        onConfirmNameRouteDialogClick = {},
-        onDismissNameRouteDialogClick = {}
-    )
-}
-
 @OptIn(ExperimentalCoilApi::class)
 @Preview(showSystemUi = true)
 @Composable
 private fun ActivePathStartedPreview() {
-    val previewHandler = AsyncImagePreviewHandler { request ->
-        when (request.data) {
-            "https://example.com/1.jpg" -> ColorImage(Color.Red.toArgb())
-            "https://example.com/2.jpg" -> ColorImage(Color.Green.toArgb())
-            "https://example.com/3.jpg" -> ColorImage(Color.Blue.toArgb())
-            else -> ColorImage(Color.Gray.toArgb())
+    TrackMyPathV2Theme {
+        CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
+            ActivePathContent(
+                state = ActivePathViewModel.State(photos = photoMetadataMock),
+                trackingState = TrackingState.STARTED,
+                onTrackPathClick = {},
+                onRouteNameChange = {},
+                onConfirmNameRouteDialogClick = {},
+                onDismissNameRouteDialogClick = {},
+                onNavigateToPastRoutes = {}
+            )
         }
     }
+}
 
-    CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
+@Preview(showSystemUi = true)
+@Composable
+private fun ActivePathStoppedPreview() {
+    TrackMyPathV2Theme {
         ActivePathContent(
-            state = ActivePathViewModel.State(
-                photos = persistentListOf(
-                    PhotoMetadata(
-                        id = 1L,
-                        placeId = "p1",
-                        photoUri = "https://example.com/1.jpg",
-                        location = PhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
-                    ),
-                    PhotoMetadata(
-                        id = 2L,
-                        placeId = "p2",
-                        photoUri = "https://example.com/2.jpg",
-                        location = PhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
-                    ),
-                    PhotoMetadata(
-                        id = 3L,
-                        placeId = "p3",
-                        photoUri = "https://example.com/3.jpg",
-                        location = PhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
-                    )
-                ),
-            ),
-            trackingState = TrackingState.STARTED,
+            state = ActivePathViewModel.State(photos = persistentListOf()),
+            trackingState = TrackingState.STOPPED,
             onTrackPathClick = {},
             onRouteNameChange = {},
             onConfirmNameRouteDialogClick = {},
-            onDismissNameRouteDialogClick = {}
+            onDismissNameRouteDialogClick = {},
+            onNavigateToPastRoutes = {}
         )
     }
 }
