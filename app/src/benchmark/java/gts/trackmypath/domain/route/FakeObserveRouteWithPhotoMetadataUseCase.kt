@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.isActive
 import javax.inject.Inject
+import kotlin.time.Instant
 
 class FakeObserveRouteWithPhotoMetadataUseCase @Inject constructor() : ObserveRouteWithPhotoMetadataContract {
 
@@ -27,6 +28,7 @@ class FakeObserveRouteWithPhotoMetadataUseCase @Inject constructor() : ObserveRo
         var currentRoute = RouteWithPhotoMetadata(
             routeId = routeId,
             displayName = "Fake Route",
+            createdAt = Instant.parse("2026-04-01T08:00:00Z"),
             photoMetadata = initialList,
             metadata = emptyMap()
         )
