@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
+import kotlin.time.Instant
 
 class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : RouteRepository {
 
@@ -69,6 +70,7 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
                 RouteWithPhotoMetadata(
                     routeId = RouteId(id = routeEntity.routeId),
                     displayName = routeEntity.displayName,
+                    createdAt = Instant.fromEpochMilliseconds(routeEntity.createdAt),
                     metadata = routeEntity.metadata,
                     photoMetadata = preSortedPhotos.map { photoEntity ->
                         photoEntity.toDomain()
@@ -88,6 +90,7 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
                     RouteWithPhotoMetadata(
                         routeId = RouteId(id = routeEntity.routeId),
                         displayName = routeEntity.displayName,
+                        createdAt = Instant.fromEpochMilliseconds(routeEntity.createdAt),
                         metadata = routeEntity.metadata,
                         photoMetadata = photoEntities.map { photoEntity ->
                             photoEntity.toDomain()
