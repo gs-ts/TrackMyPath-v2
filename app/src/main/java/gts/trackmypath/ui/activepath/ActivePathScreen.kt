@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -32,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -39,6 +41,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow.Companion.Ellipsis
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -156,9 +159,7 @@ private fun ActivePathContent(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(
-                        text = "track my path",
-                    )
+                    Text(text = "track my path",)
                 },
                 actions = {
                     IconButton(onClick = onNavigateToPastRoutes) {
@@ -219,6 +220,30 @@ private fun ActivePathContent(
             }
         },
     ) { innerPadding ->
+        if (state.photos.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    modifier = Modifier.size(32.dp),
+                    painter = painterResource(R.drawable.walk_icon),
+                    contentDescription = "No photos",
+                    tint = MaterialTheme.colorScheme.outlineVariant,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "No photos captured yet. Start tracking to see photos taken along your route.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+            }
+        }
         PhotoStream(
             modifier = Modifier
                 .fillMaxSize()
@@ -265,7 +290,13 @@ private fun PhotoCard(photo: PhotoMetadata) {
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+                .padding(top = 8.dp)
+                .padding(bottom = 16.dp)
+        ) {
             SubcomposeAsyncImage(
                 model = photo.photoUri,
                 contentDescription = photo.generativeSummary,
