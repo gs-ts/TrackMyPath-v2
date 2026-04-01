@@ -239,7 +239,7 @@ private fun ActivePathContent(
 }
 
 @Composable
-private fun EmptyStream(modifier: Modifier) {
+private fun EmptyStream(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
