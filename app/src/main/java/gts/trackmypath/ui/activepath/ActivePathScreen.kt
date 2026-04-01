@@ -159,7 +159,7 @@ private fun ActivePathContent(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(text = "track my path",)
+                    Text(text = "track my path")
                 },
                 actions = {
                     IconButton(onClick = onNavigateToPastRoutes) {
@@ -221,28 +221,12 @@ private fun ActivePathContent(
         },
     ) { innerPadding ->
         if (state.photos.isEmpty()) {
-            Column(
+            EmptyStream(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    modifier = Modifier.size(32.dp),
-                    painter = painterResource(R.drawable.walk_icon),
-                    contentDescription = "No photos",
-                    tint = MaterialTheme.colorScheme.outlineVariant,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "No photos captured yet. Start tracking to see photos taken along your route.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                )
-            }
+                    .padding(32.dp)
+            )
         }
         PhotoStream(
             modifier = Modifier
@@ -250,6 +234,29 @@ private fun ActivePathContent(
                 .padding(innerPadding)
                 .padding(horizontal = 24.dp),
             photos = state.photos
+        )
+    }
+}
+
+@Composable
+private fun EmptyStream(modifier: Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            modifier = Modifier.size(32.dp),
+            painter = painterResource(R.drawable.walk_icon),
+            contentDescription = "No photos",
+            tint = MaterialTheme.colorScheme.outlineVariant,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "No photos captured yet. Start tracking to see photos taken along your route.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.outlineVariant,
         )
     }
 }
@@ -319,7 +326,10 @@ private fun PhotoCard(photo: PhotoMetadata) {
                     overflow = Ellipsis,
                 )
             } else {
-                Text("no description available")
+                Text(
+                    text = "no description available",
+                    style = MaterialTheme.typography.titleSmall,
+                )
             }
         }
     }
