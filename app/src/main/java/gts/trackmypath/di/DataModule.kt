@@ -16,7 +16,7 @@ import gts.trackmypath.domain.route.RouteRepository
 interface DataModule {
 
     @Binds
-    fun bindGooglePlacesClientI(
+    fun bindGooglePlacesClient(
         googlePlacesClientImpl: GooglePlacesClientImpl
     ): GooglePlacesClient
 
