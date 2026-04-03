@@ -54,7 +54,7 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
                 return@withContext Result.failure(PhotoMetadataUnavailableException("No new places with photos found."))
             }
 
-            Log.d("PhotoMetadataRepository", "fetchPhotoMetadataForLocation found valid place $validPlace")
+            Log.d("PhotoMetadataRepository", "fetchPhotoMetadataForLocation found valid place ${validPlace.id}")
             val placeId = validPlace.id!! // Safe because we filtered nulls in the predicate
 
             // third check: fetch photoUri
