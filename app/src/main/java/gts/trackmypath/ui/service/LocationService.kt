@@ -59,10 +59,10 @@ class LocationService : Service() {
             serviceStateHolder.setServiceRunning(isRunning = false)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
-            return START_STICKY
+            return START_NOT_STICKY
         }
 
-        val routeId = intent?.getLongExtra("EXTRA_ROUTE_ID", -1L)
+        val routeId = intent?.getLongExtra(EXTRA_ROUTE_ID, -1L)
         if (routeId != null && routeId != -1L) {
             startForegroundLocationService(routeId = routeId)
             serviceStateHolder.setServiceRunning(true)
@@ -184,7 +184,8 @@ class LocationService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 1
         private const val NOTIFICATION_CHANNEL_ID = "track_my_path_notification_id"
-        private const val NOTIFICATION_CHANNEL_NAME = "track_my_path_notification _channel"
-        const val ACTION_STOP_SERVICE = "stop_service_action"
+        private const val NOTIFICATION_CHANNEL_NAME = "track_my_path_notification_channel"
+        private const val ACTION_STOP_SERVICE = "stop_service_action"
+        const val EXTRA_ROUTE_ID = "extra_route_id"
     }
 }
