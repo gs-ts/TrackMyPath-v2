@@ -38,7 +38,7 @@ class LocationService : Service() {
     lateinit var locationProvider: LocationProvider
 
     @Inject
-    lateinit var serviceStateHolder: ServiceStateHolder
+    lateinit var locationServiceStateHolder: LocationServiceStateHolder
 
     @Inject
     lateinit var fetchPhotoMetadataForLocationUseCase: FetchPhotoMetadataForLocationUseCase
@@ -56,7 +56,7 @@ class LocationService : Service() {
         super.onStartCommand(intent, flags, startId)
 
         if (intent?.action == ACTION_STOP_SERVICE || arePermissionsGranted().not()) {
-            serviceStateHolder.setServiceRunning(isRunning = false)
+            locationServiceStateHolder.setServiceRunning(isRunning = false)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -65,7 +65,10 @@ class LocationService : Service() {
         val routeId = intent?.getLongExtra(EXTRA_ROUTE_ID, -1L)
         if (routeId != null && routeId != -1L) {
             startForegroundLocationService(routeId = routeId)
-            serviceStateHolder.setServiceRunning(true)
+            locationServiceStateHolder.setServiceRunning(
+                isRunning = true,
+                activeRouteId = RouteId(routeId)
+            )
         } else {
             stopSelf() // kill the service if it was started without a valid routeId
         }
@@ -87,7 +90,7 @@ class LocationService : Service() {
             }
         } catch (exception: Exception) {
             Log.e("LocationService", "Failed to start foreground service", exception)
-            serviceStateHolder.setServiceRunning(false) // Reset state if it crashes
+            locationServiceStateHolder.setServiceRunning(isRunning = false) // Reset state if it crashes
         }
     }
 
@@ -120,7 +123,7 @@ class LocationService : Service() {
         Log.d("LocationService", "onDestroy: Stopping location service")
         locationUpdatesJob?.cancel()
         locationUpdatesJob = null
-        serviceStateHolder.setServiceRunning(isRunning = false)
+        locationServiceStateHolder.setServiceRunning(isRunning = false)
         super.onDestroy()
     }
 

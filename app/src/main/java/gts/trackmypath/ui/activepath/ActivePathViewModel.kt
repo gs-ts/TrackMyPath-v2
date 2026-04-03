@@ -10,8 +10,7 @@ import gts.trackmypath.domain.route.FinishRouteUseCase
 import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataContract
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.StartRouteUseCase
-import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
-import gts.trackmypath.ui.service.ServiceStateHolder
+import gts.trackmypath.ui.service.LocationServiceManager
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toPersistentList
@@ -26,7 +25,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ActivePathViewModel @Inject constructor(
-    private val serviceStateHolder: ServiceStateHolder,
+    private val locationServiceManager: LocationServiceManager,
     private val startRouteUseCase: StartRouteUseCase,
     private val finishRouteUseCase: FinishRouteUseCase,
     private val deletePendingRouteUseCase: DeletePendingRouteUseCase,
@@ -36,40 +35,26 @@ class ActivePathViewModel @Inject constructor(
     val state: StateFlow<State>
         field = MutableStateFlow(State())
 
-    private var locationUpdatesJob: Job? = null
     private var ongoingRoutePhotosJob: Job? = null
 
     init {
         observeLocationServiceEvents()
     }
 
-    fun onTrackPathClick() {
-        val currentTrackingState = state.value.trackingState
-
-        when (currentTrackingState) {
-            TrackingState.STOPPED -> {
-                viewModelScope.launch {
-                    val newRouteId = startRouteUseCase()
-                    state.update { state ->
-                        state.copy(
-                            ongoingRouteId = newRouteId,
-                            trackingState = TrackingState.STARTED,
-                        )
-                    }
-                    observeOngoingRoutePhotos()
-                }
+    fun onStartTrackPathClick() {
+        viewModelScope.launch {
+            val newRouteId = startRouteUseCase()
+            state.update { state ->
+                state.copy(ongoingRouteId = newRouteId)
             }
+            locationServiceManager.startTracking(routeId = newRouteId)
+        }
+    }
 
-            TrackingState.STARTED -> {
-                ongoingRoutePhotosJob?.cancel()
-
-                state.update { state ->
-                    state.copy(
-                        trackingState = TrackingState.STOPPED,
-                        showNameRouteDialog = true
-                    )
-                }
-            }
+    fun onStopTrackPathClick() {
+        locationServiceManager.stopTracking()
+        state.update { state ->
+            state.copy(showNameRouteDialog = true)
         }
     }
 
@@ -120,15 +105,22 @@ class ActivePathViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeLocationServiceEvents() {
         viewModelScope.launch {
-            serviceStateHolder.isServiceRunning
-                .collectLatest { isServiceRunning ->
-                    if (isServiceRunning) {
-                        if (state.value.trackingState == TrackingState.STOPPED) {
-                            state.update { state ->
-                                state.copy(trackingState = TrackingState.STARTED)
-                            }
+            locationServiceManager.trackingState
+                .collectLatest { trackingState ->
+                    Log.d("ActivePathViewModel", "trackingState: $trackingState")
+                    if (trackingState.isRunning) {
+                        state.update { state ->
+                            state.copy(
+                                isLocationServiceRunning = true,
+                                ongoingRouteId = trackingState.activeRouteId
+                            )
                         }
+                        ongoingRoutePhotosJob?.cancel()
+                        observeOngoingRoutePhotos()
                     } else {
+                        state.update { state ->
+                            state.copy(isLocationServiceRunning = false)
+                        }
                         stopLocationUpdates()
                     }
                 }
@@ -137,11 +129,8 @@ class ActivePathViewModel @Inject constructor(
 
     private fun stopLocationUpdates() {
         Log.d("ActivePathViewModel", "user clicked stop location updates")
-        state.update { state ->
-            state.copy(trackingState = TrackingState.STOPPED)
-        }
-        locationUpdatesJob?.cancel()
-        locationUpdatesJob = null
+        ongoingRoutePhotosJob?.cancel()
+        ongoingRoutePhotosJob = null
     }
 
     private fun observeOngoingRoutePhotos() {
@@ -149,6 +138,7 @@ class ActivePathViewModel @Inject constructor(
             ongoingRoutePhotosJob = viewModelScope.launch {
                 observeRouteWithPhotoMetadataUseCase(routeId = ongoingRouteId)
                     .collect { routeWithPhotoMetadata ->
+                        Log.d("ActivePathViewModel", "routeWithPhotoMetadata received: $routeWithPhotoMetadata")
                         state.update { currentState ->
                             currentState.copy(photos = routeWithPhotoMetadata.photoMetadata.toPersistentList())
                         }
@@ -158,16 +148,14 @@ class ActivePathViewModel @Inject constructor(
     }
 
     data class State(
-        val trackingState: TrackingState = TrackingState.STOPPED,
-        val photos: PersistentList<PhotoMetadata> = persistentListOf(),
-        val showNameRouteDialog: Boolean = false,
+        val isLocationServiceRunning: Boolean = false,
         val ongoingRouteId: RouteId? = null,
-        val routeNameInput: String = ""
+        val photos: PersistentList<PhotoMetadata> = persistentListOf(),
+        val routeNameInput: String = "",
+        val showNameRouteDialog: Boolean = false
     ) {
 
-        enum class TrackingState {
-            STARTED,
-            STOPPED,
-        }
+        val isTracking: Boolean
+            get() = isLocationServiceRunning && ongoingRouteId != null
     }
 }

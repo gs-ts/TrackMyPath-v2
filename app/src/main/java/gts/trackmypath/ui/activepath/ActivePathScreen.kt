@@ -3,7 +3,6 @@ package gts.trackmypath.ui.activepath
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.POST_NOTIFICATIONS
-import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
@@ -55,10 +53,9 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
-import gts.trackmypath.ui.activepath.ActivePathViewModel.State.TrackingState
+import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.mockdata.photoMetadataMock
 import gts.trackmypath.ui.mockdata.previewHandler
-import gts.trackmypath.ui.service.LocationService
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
@@ -71,29 +68,11 @@ fun ActivePathScreen(
 ) {
 
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-
-    LaunchedEffect(key1 = state.trackingState) {
-        val locationServiceIntent = Intent(context, LocationService::class.java)
-
-        when (state.trackingState) {
-            TrackingState.STARTED -> {
-                state.ongoingRouteId?.let { routeId ->
-                    locationServiceIntent.putExtra("EXTRA_ROUTE_ID", routeId.id)
-                }
-                context.startService(locationServiceIntent)
-            }
-
-            TrackingState.STOPPED -> {
-                context.stopService(locationServiceIntent)
-            }
-        }
-    }
 
     ActivePathContent(
         state = state,
-        trackingState = state.trackingState,
-        onTrackPathClick = viewModel::onTrackPathClick,
+        onStartTrackPathClick = viewModel::onStartTrackPathClick,
+        onStopTrackPathClick = viewModel::onStopTrackPathClick,
         onRouteNameChange = viewModel::onRouteNameChange,
         onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
         onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick,
@@ -106,8 +85,8 @@ fun ActivePathScreen(
 private fun ActivePathContent(
     modifier: Modifier = Modifier,
     state: ActivePathViewModel.State,
-    trackingState: TrackingState,
-    onTrackPathClick: () -> Unit,
+    onStartTrackPathClick: () -> Unit,
+    onStopTrackPathClick: () -> Unit,
     onRouteNameChange: (String) -> Unit,
     onConfirmNameRouteDialogClick: () -> Unit,
     onDismissNameRouteDialogClick: () -> Unit,
@@ -126,7 +105,11 @@ private fun ActivePathContent(
         permissions = listOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, POST_NOTIFICATIONS),
     ) { permissions ->
         if (permissions[ACCESS_FINE_LOCATION] == true && permissions[POST_NOTIFICATIONS] == true) {
-            onTrackPathClick()
+            if (state.isTracking) {
+                onStopTrackPathClick()
+            } else {
+                onStartTrackPathClick()
+            }
         }
     }
 
@@ -184,7 +167,11 @@ private fun ActivePathContent(
 
                     when {
                         isFineGranted -> {
-                            onTrackPathClick()
+                            if (state.isTracking) {
+                                onStopTrackPathClick()
+                            } else {
+                                onStartTrackPathClick()
+                            }
                         }
 
                         isCoarseGranted -> {
@@ -203,15 +190,15 @@ private fun ActivePathContent(
                     }
                 },
             ) {
-                val icon = if (trackingState == TrackingState.STOPPED) {
-                    painterResource(R.drawable.play_arrow_icon)
-                } else {
+                val icon = if (state.isTracking) {
                     painterResource(R.drawable.stop_icon)
-                }
-                val contentDescription = if (trackingState == TrackingState.STOPPED) {
-                    "Start path tracking"
                 } else {
+                    painterResource(R.drawable.play_arrow_icon)
+                }
+                val contentDescription = if (state.isTracking) {
                     "Stop path tracking"
+                } else {
+                    "Start path tracking"
                 }
                 Icon(
                     painter = icon,
@@ -348,9 +335,13 @@ private fun ActivePathStartedPreview() {
     TrackMyPathV2Theme {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             ActivePathContent(
-                state = ActivePathViewModel.State(photos = photoMetadataMock),
-                trackingState = TrackingState.STARTED,
-                onTrackPathClick = {},
+                state = ActivePathViewModel.State(
+                    isLocationServiceRunning = true,
+                    ongoingRouteId = RouteId(1),
+                    photos = photoMetadataMock
+                ),
+                onStartTrackPathClick = {},
+                onStopTrackPathClick = {},
                 onRouteNameChange = {},
                 onConfirmNameRouteDialogClick = {},
                 onDismissNameRouteDialogClick = {},
@@ -366,8 +357,8 @@ private fun ActivePathStoppedPreview() {
     TrackMyPathV2Theme {
         ActivePathContent(
             state = ActivePathViewModel.State(photos = persistentListOf()),
-            trackingState = TrackingState.STOPPED,
-            onTrackPathClick = {},
+            onStartTrackPathClick = {},
+            onStopTrackPathClick = {},
             onRouteNameChange = {},
             onConfirmNameRouteDialogClick = {},
             onDismissNameRouteDialogClick = {},
