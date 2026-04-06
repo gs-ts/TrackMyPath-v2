@@ -28,7 +28,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -41,35 +40,39 @@ import coil3.compose.SubcomposeAsyncImage
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
-import gts.trackmypath.domain.route.RouteWithPhotoMetadata
 import gts.trackmypath.ui.activepath.shimmer
+import gts.trackmypath.ui.composables.LoadingView
 import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.mockdata.routesWithPhotoMetadataMock
+import gts.trackmypath.ui.model.RouteWithPhotoMetadataUiState
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
-import kotlin.time.Instant
+import kotlinx.collections.immutable.ImmutableList
 
 @Composable
 fun PastRoutesScreen(
     viewModel: PastRoutesViewModel,
+    onNavigateToPastRouteDetail: (RouteId) -> Unit,
     onBackClick: () -> Unit
 ) {
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    PastRoutesContent(
-        routesWithPhotoMetadata = state,
-        dateFormatter = viewModel::formatRouteDate,
-        onRouteCardClick = viewModel::onRouteCardClick,
-        onBackClick = onBackClick
-    )
+    if (state.isLoading) {
+        LoadingView()
+    } else {
+        PastRoutesContent(
+            routesWithPhotoMetadata = state.routesWithPhotoMetadata,
+            onRouteCardClick = onNavigateToPastRouteDetail,
+            onBackClick = onBackClick
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PastRoutesContent(
     modifier: Modifier = Modifier,
-    dateFormatter: (Instant) -> String,
-    routesWithPhotoMetadata: List<RouteWithPhotoMetadata>,
+    routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState>,
     onRouteCardClick: (RouteId) -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -104,7 +107,6 @@ private fun PastRoutesContent(
             ) { routeWithPhotoMetadata ->
                 RouteCard(
                     routeWithPhotoMetadata = routeWithPhotoMetadata,
-                    dateFormatter = dateFormatter,
                     onRouteCardClick = onRouteCardClick
                 )
             }
@@ -114,14 +116,9 @@ private fun PastRoutesContent(
 
 @Composable
 private fun RouteCard(
-    routeWithPhotoMetadata: RouteWithPhotoMetadata,
-    dateFormatter: (Instant) -> String,
+    routeWithPhotoMetadata: RouteWithPhotoMetadataUiState,
     onRouteCardClick: (RouteId) -> Unit
 ) {
-    val displayDate = remember(routeWithPhotoMetadata.createdAt) {
-        dateFormatter(routeWithPhotoMetadata.createdAt)
-    }
-
     @Suppress("MagicNumber")
     val numberOfPreviewPhotos = 3
     Card(
@@ -168,7 +165,7 @@ private fun RouteCard(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 modifier = Modifier.padding(start = 4.dp),
-                text = displayDate,
+                text = routeWithPhotoMetadata.createdAt,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -203,7 +200,6 @@ private fun PastRoutesPreview() {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             PastRoutesContent(
                 routesWithPhotoMetadata = routesWithPhotoMetadataMock,
-                dateFormatter = { routesWithPhotoMetadataMock.first().createdAt.toString() },
                 onRouteCardClick = {},
                 onBackClick = {}
             )
@@ -218,7 +214,6 @@ private fun RouteCardPreview() {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             RouteCard(
                 routeWithPhotoMetadata = routesWithPhotoMetadataMock.first(),
-                dateFormatter = { routesWithPhotoMetadataMock.first().createdAt.toString() },
                 onRouteCardClick = {}
             )
         }
