@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,9 +30,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.annotation.ExperimentalCoilApi
@@ -123,7 +125,7 @@ private fun RouteCard(
     val numberOfPreviewPhotos = 3
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -141,7 +143,8 @@ private fun RouteCard(
             Text(
                 modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
                 text = routeWithPhotoMetadata.displayName.orEmpty(),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -181,7 +184,9 @@ private fun PhotoPreview(
     SubcomposeAsyncImage(
         model = photo.photoUri,
         contentDescription = photo.generativeSummary,
-        modifier = modifier.aspectRatio(1f),
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(shape = RoundedCornerShape(size = 8.dp)),
         contentScale = ContentScale.Crop,
         loading = {
             Box(
@@ -193,7 +198,7 @@ private fun PhotoPreview(
     )
 }
 
-@Preview(showBackground = true)
+@PreviewLightDark
 @Composable
 private fun PastRoutesPreview() {
     TrackMyPathV2Theme {
@@ -207,7 +212,7 @@ private fun PastRoutesPreview() {
     }
 }
 
-@Preview(showBackground = false)
+@PreviewLightDark
 @Composable
 private fun RouteCardPreview() {
     TrackMyPathV2Theme {

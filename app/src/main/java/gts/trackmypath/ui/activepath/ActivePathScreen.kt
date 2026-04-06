@@ -35,7 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.annotation.ExperimentalCoilApi
@@ -230,14 +230,14 @@ private fun EmptyStream(modifier: Modifier = Modifier) {
             modifier = Modifier.size(32.dp),
             painter = painterResource(R.drawable.walk_icon),
             contentDescription = "No photos",
-            tint = MaterialTheme.colorScheme.outlineVariant,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "No photos captured yet. Start tracking to see photos taken along your route.",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.outlineVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -277,7 +277,7 @@ private enum class LocationPermissionDialogType {
 }
 
 @OptIn(ExperimentalCoilApi::class)
-@Preview(showSystemUi = true)
+@PreviewLightDark
 @Composable
 private fun ActivePathStartedPreview() {
     TrackMyPathV2Theme {
@@ -299,7 +299,7 @@ private fun ActivePathStartedPreview() {
     }
 }
 
-@Preview(showSystemUi = true)
+@PreviewLightDark
 @Composable
 private fun ActivePathStoppedPreview() {
     TrackMyPathV2Theme {
