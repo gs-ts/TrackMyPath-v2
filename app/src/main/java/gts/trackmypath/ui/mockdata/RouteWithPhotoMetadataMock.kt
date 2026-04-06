@@ -2,6 +2,7 @@ package gts.trackmypath.ui.mockdata
 
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.RouteWithPhotoMetadata
+import gts.trackmypath.ui.model.toUiState
 import kotlinx.collections.immutable.persistentListOf
 import kotlin.time.Instant
 
@@ -28,4 +29,4 @@ val routesWithPhotoMetadataMock = persistentListOf(
         photoMetadata = photoMetadataMock.removeAt(index = 0),
         metadata = emptyMap()
     )
-)
+).toUiState()
