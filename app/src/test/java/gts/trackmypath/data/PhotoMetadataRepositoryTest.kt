@@ -7,6 +7,7 @@ import com.google.android.libraries.places.api.model.Place
 import gts.trackmypath.data.database.photometadata.PhotoMetadataDao
 import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.data.network.GooglePlacesClient
+import gts.trackmypath.data.repository.PhotoMetadataRepositoryImpl
 import gts.trackmypath.domain.PhotoMetadataUnavailableException
 import gts.trackmypath.domain.PlacesUnavailableException
 import gts.trackmypath.domain.photometadata.PhotoMetadata as DomainPhotoMetadata

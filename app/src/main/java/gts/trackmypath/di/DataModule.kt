@@ -4,10 +4,10 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import gts.trackmypath.data.PhotoMetadataRepositoryImpl
-import gts.trackmypath.data.RouteRepositoryImpl
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.data.network.GooglePlacesClientImpl
+import gts.trackmypath.data.repository.PhotoMetadataRepositoryImpl
+import gts.trackmypath.data.repository.RouteRepositoryImpl
 import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
 import gts.trackmypath.domain.route.RouteRepository
 

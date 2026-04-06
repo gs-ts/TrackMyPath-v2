@@ -1,4 +1,4 @@
-package gts.trackmypath.data
+package gts.trackmypath.data.repository
 
 import android.util.Log
 import gts.trackmypath.data.database.photometadata.toDomain

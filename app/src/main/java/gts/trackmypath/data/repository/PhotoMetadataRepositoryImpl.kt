@@ -1,4 +1,4 @@
-package gts.trackmypath.data
+package gts.trackmypath.data.repository
 
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
