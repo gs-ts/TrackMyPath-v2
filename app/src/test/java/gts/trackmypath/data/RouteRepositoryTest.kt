@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class RouteRepositoryTest {
 
@@ -63,11 +63,11 @@ class RouteRepositoryTest {
                 routeDao.dbStream.emit(routeMapFromDb)
 
                 val firstEmission = awaitItem()
-                assertEquals("Test Route", firstEmission.displayName)
+                assertEquals(expected = "Test Route", actual = firstEmission.displayName)
 
                 // Verify Mapping (ensuring it matches the flow emitted by DB Fake)
-                assertEquals(101L, firstEmission.photoMetadata[0].id)
-                assertEquals(100L, firstEmission.photoMetadata[1].id)
+                assertEquals(expected = 101L, actual = firstEmission.photoMetadata[0].id)
+                assertEquals(expected = 100L, actual = firstEmission.photoMetadata[1].id)
 
                 // emit the EXACT same entity again to test distinctUntilChanged
                 routeDao.dbStream.emit(routeMapFromDb)
@@ -84,7 +84,7 @@ class RouteRepositoryTest {
                 )
 
                 val secondEmission = awaitItem()
-                assertEquals("Updated Route", secondEmission.displayName)
+                assertEquals(expected = "Updated Route", actual = secondEmission.displayName)
 
                 // verify no other items were emitted (proving distinct and empty map drops worked)
                 expectNoEvents()

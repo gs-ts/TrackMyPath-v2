@@ -33,8 +33,11 @@ class PhotoMetadataRepositoryTest {
     @Test
     fun `fetchPhotoMetadataForLocation returns success when searchNearbyPlaces call and fetchPhotoUri are successful`() = runTest(testDispatcher) {
             val googlePlacesClient: GooglePlacesClient = GooglePlacesClientFake()
-            photoMetadataRepository =
-                PhotoMetadataRepositoryImpl(googlePlacesClient, photoMetadataDao, testDispatcher)
+            photoMetadataRepository = PhotoMetadataRepositoryImpl(
+                googlePlacesClient = googlePlacesClient,
+                photoMetadataDao = photoMetadataDao,
+                ioDispatcher = testDispatcher
+            )
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
                 routeId = RouteId(id = 1),
@@ -48,10 +51,12 @@ class PhotoMetadataRepositoryTest {
 
     @Test
     fun `fetchPhotoMetadataForLocation returns error when searchNearbyPlaces returns empty list`() = runTest(testDispatcher) {
-            val googlePlacesClient: GooglePlacesClient =
-                GooglePlacesClientFake(withException = true)
-            photoMetadataRepository =
-                PhotoMetadataRepositoryImpl(googlePlacesClient, photoMetadataDao, testDispatcher)
+            val googlePlacesClient: GooglePlacesClient = GooglePlacesClientFake(withException = true)
+            photoMetadataRepository = PhotoMetadataRepositoryImpl(
+                googlePlacesClient = googlePlacesClient,
+                photoMetadataDao = photoMetadataDao,
+                ioDispatcher = testDispatcher
+            )
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
                 routeId = RouteId(id = 1),
