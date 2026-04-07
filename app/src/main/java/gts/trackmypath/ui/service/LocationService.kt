@@ -55,7 +55,7 @@ class LocationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
 
-        if (intent?.action == ACTION_STOP_SERVICE || arePermissionsGranted().not()) {
+        if (arePermissionsGranted().not()) {
             locationServiceStateHolder.setServiceRunning(isRunning = false)
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -147,16 +147,6 @@ class LocationService : Service() {
     }
 
     private fun getServiceNotification(): Notification {
-        val stopSelfIntent = Intent(this, LocationService::class.java).apply {
-            action = ACTION_STOP_SERVICE
-        }
-        val stopSelfPendingIntent = PendingIntent.getService(
-            this,
-            1,
-            stopSelfIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
         // Intent to open the app when notification is clicked, this will launch MainActivity even if app is killed
         val notificationIntent = Intent(this, MainActivity::class.java).apply {
             // These flags ensure the activity is brought to front or created if killed
@@ -173,7 +163,6 @@ class LocationService : Service() {
 
         val builder = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("You are tracking your path")
-            .addAction(0, "Stop tracking", stopSelfPendingIntent)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentIntent(activityPendingIntent)
             .setColorized(true)
@@ -188,7 +177,6 @@ class LocationService : Service() {
         private const val NOTIFICATION_ID = 1
         private const val NOTIFICATION_CHANNEL_ID = "track_my_path_notification_id"
         private const val NOTIFICATION_CHANNEL_NAME = "track_my_path_notification_channel"
-        private const val ACTION_STOP_SERVICE = "stop_service_action"
         const val EXTRA_ROUTE_ID = "extra_route_id"
     }
 }
