@@ -2,7 +2,6 @@
 
 package gts.trackmypath.ui.pastroutes
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,10 +29,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -64,7 +66,11 @@ fun PastRoutesScreen(
     } else {
         PastRoutesContent(
             routesWithPhotoMetadata = state.routesWithPhotoMetadata,
+            showDeletePastRouteDialog = state.showDeletePastRouteDialog,
             onRouteCardClick = onNavigateToPastRouteDetail,
+            onDeleteRouteClick = viewModel::onDeleteRouteClick,
+            onConfirmDeleteRouteClick = viewModel::onConfirmDeleteRouteClick,
+            onDismissDeleteRouteDialogClick = viewModel::onDismissDeleteRouteDialogClick,
             onBackClick = onBackClick
         )
     }
@@ -75,9 +81,20 @@ fun PastRoutesScreen(
 private fun PastRoutesContent(
     modifier: Modifier = Modifier,
     routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState>,
+    showDeletePastRouteDialog: Boolean,
     onRouteCardClick: (RouteId) -> Unit,
+    onDeleteRouteClick: (RouteId) -> Unit,
+    onConfirmDeleteRouteClick: () -> Unit,
+    onDismissDeleteRouteDialogClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
+    if (showDeletePastRouteDialog) {
+        DeletePastRouteDialog(
+            onConfirmClick = onConfirmDeleteRouteClick,
+            onDismissClick = onDismissDeleteRouteDialogClick
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -96,56 +113,122 @@ private fun PastRoutesContent(
             )
         },
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp),
-        ) {
-            items(
-                items = routesWithPhotoMetadata,
-                key = { routeWithPhotoMetadata -> routeWithPhotoMetadata.routeId.id }
-            ) { routeWithPhotoMetadata ->
-                RouteCard(
-                    routeWithPhotoMetadata = routeWithPhotoMetadata,
-                    onRouteCardClick = onRouteCardClick
-                )
-            }
+        if (routesWithPhotoMetadata.isNotEmpty()) {
+            PastRoutesList(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(horizontal = 24.dp),
+                routesWithPhotoMetadata = routesWithPhotoMetadata,
+                onRouteCardClick = onRouteCardClick,
+                onDeleteRouteClick = onDeleteRouteClick
+            )
+        } else {
+            EmptyPastRoutes(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(32.dp)
+            )
         }
     }
 }
 
 @Composable
+private fun PastRoutesList(
+    modifier: Modifier = Modifier,
+    routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState>,
+    onRouteCardClick: (RouteId) -> Unit,
+    onDeleteRouteClick: (RouteId) -> Unit
+) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(bottom = 24.dp, top = 8.dp)
+    ) {
+        items(
+            items = routesWithPhotoMetadata,
+            key = { routeWithPhotoMetadata -> routeWithPhotoMetadata.routeId.id }
+        ) { routeWithPhotoMetadata ->
+            RouteCard(
+                modifier = Modifier.animateItem(),
+                routeWithPhotoMetadata = routeWithPhotoMetadata,
+                onRouteCardClick = onRouteCardClick,
+                onDeleteClick = onDeleteRouteClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyPastRoutes(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            modifier = Modifier.size(32.dp),
+            painter = painterResource(R.drawable.walk_icon),
+            contentDescription = "No past routes",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "No past routes found.",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
 private fun RouteCard(
+    modifier: Modifier = Modifier,
     routeWithPhotoMetadata: RouteWithPhotoMetadataUiState,
-    onRouteCardClick: (RouteId) -> Unit
+    onRouteCardClick: (RouteId) -> Unit,
+    onDeleteClick: (RouteId) -> Unit
 ) {
     @Suppress("MagicNumber")
     val numberOfPreviewPhotos = 3
     Card(
+        modifier = modifier,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        modifier = Modifier.clickable(
-            onClick = { onRouteCardClick(routeWithPhotoMetadata.routeId) }
-        )
+        onClick = { onRouteCardClick(routeWithPhotoMetadata.routeId) }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
-                .padding(top = 8.dp)
                 .padding(bottom = 16.dp)
         ) {
-            Text(
-                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp),
-                text = routeWithPhotoMetadata.displayName.orEmpty(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp),
+                    text = routeWithPhotoMetadata.displayName.orEmpty(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                IconButton(
+                    onClick = { onDeleteClick(routeWithPhotoMetadata.routeId) }
+                ) {
+                    Icon(
+                        modifier = Modifier.size(20.dp),
+                        painter = painterResource(R.drawable.delete_icon),
+                        contentDescription = "Delete route",
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -204,9 +287,13 @@ private fun PastRoutesPreview() {
     TrackMyPathV2Theme {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             PastRoutesContent(
+                showDeletePastRouteDialog = false,
                 routesWithPhotoMetadata = routesWithPhotoMetadataMock,
                 onRouteCardClick = {},
-                onBackClick = {}
+                onDeleteRouteClick = {},
+                onConfirmDeleteRouteClick = {},
+                onDismissDeleteRouteDialogClick = {},
+                onBackClick = {},
             )
         }
     }
@@ -219,7 +306,8 @@ private fun RouteCardPreview() {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             RouteCard(
                 routeWithPhotoMetadata = routesWithPhotoMetadataMock.first(),
-                onRouteCardClick = {}
+                onRouteCardClick = {},
+                onDeleteClick = {}
             )
         }
     }
