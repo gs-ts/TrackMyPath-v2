@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 
 @Composable
 internal fun NameRouteDialog(
@@ -34,6 +36,7 @@ internal fun NameRouteDialog(
             ) {
                 Text(
                     text = "Give a name to your route:",
+                    style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier
                         .padding(top = 32.dp)
                         .padding(horizontal = 16.dp)
@@ -80,10 +83,12 @@ internal fun NameRouteDialog(
 @Preview
 @Composable
 private fun NameRouteDialogPreview() {
-    NameRouteDialog(
-        routeName = "my route",
-        onRouteNameChange = {},
-        onConfirmClick = {},
-        onDismissClick = {},
-    )
+    TrackMyPathV2Theme {
+        NameRouteDialog(
+            routeName = "my route",
+            onRouteNameChange = {},
+            onConfirmClick = {},
+            onDismissClick = {},
+        )
+    }
 }
