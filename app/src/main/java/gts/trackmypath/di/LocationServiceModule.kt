@@ -4,6 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import gts.trackmypath.ui.service.LocationServiceController
+import gts.trackmypath.ui.service.LocationServiceControllerImpl
 import gts.trackmypath.ui.service.LocationServiceManager
 import gts.trackmypath.ui.service.LocationServiceStateHolder
 import gts.trackmypath.ui.service.LocationServiceStateHolderImpl
@@ -21,4 +23,9 @@ interface LocationServiceModule {
     fun bindLocationServiceManager(
         locationServiceStateHolderImpl: LocationServiceStateHolderImpl
     ): LocationServiceManager
+
+    @Binds
+    fun bindLocationServiceController(
+        locationServiceControllerImpl: LocationServiceControllerImpl
+    ): LocationServiceController
 }

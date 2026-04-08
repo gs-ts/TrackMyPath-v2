@@ -1,11 +1,7 @@
 package gts.trackmypath.ui.service
 
-import android.content.Context
-import android.content.Intent
 import android.util.Log
-import dagger.hilt.android.qualifiers.ApplicationContext
 import gts.trackmypath.domain.route.RouteId
-import gts.trackmypath.ui.service.LocationService.Companion.EXTRA_ROUTE_ID
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,6 +9,10 @@ import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Responsible for holding the state of the LocationService.
+ *
+ */
 interface LocationServiceStateHolder {
 
     fun setServiceRunning(
@@ -21,6 +21,10 @@ interface LocationServiceStateHolder {
     )
 }
 
+/**
+ * Responsible for starting and stopping the LocationService.
+ *
+ */
 interface LocationServiceManager {
 
     val trackingState: StateFlow<TrackingState>
@@ -32,7 +36,7 @@ interface LocationServiceManager {
 
 @Singleton
 class LocationServiceStateHolderImpl @Inject constructor(
-    @param:ApplicationContext private val applicationContext: Context
+    private val locationServiceController: LocationServiceController
 ) : LocationServiceStateHolder, LocationServiceManager {
 
     private val _trackingState = MutableStateFlow(TrackingState())
@@ -56,16 +60,11 @@ class LocationServiceStateHolderImpl @Inject constructor(
     }
 
     override fun startTracking(routeId: RouteId) {
-        Log.d("LocationServiceStateHolder", "startTracking for routeId: ${routeId.id}")
-        val locationServiceIntent = Intent(applicationContext, LocationService::class.java)
-        locationServiceIntent.putExtra(EXTRA_ROUTE_ID, routeId.id)
-        applicationContext.startForegroundService(locationServiceIntent)
+        locationServiceController.startService(routeId)
     }
 
     override fun stopTracking() {
-        Log.d("LocationServiceStateHolder", "stopTracking")
-        val locationServiceIntent = Intent(applicationContext, LocationService::class.java)
-        applicationContext.stopService(locationServiceIntent)
+        locationServiceController.stopService()
     }
 }
 
