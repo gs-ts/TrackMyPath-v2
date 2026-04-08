@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gts.trackmypath.domain.photometadata.PhotoMetadata
-import gts.trackmypath.domain.route.DeletePendingRouteUseCase
+import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
 import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataContract
 import gts.trackmypath.domain.route.RouteId
@@ -28,7 +28,7 @@ class ActivePathViewModel @Inject constructor(
     private val locationServiceManager: LocationServiceManager,
     private val startRouteUseCase: StartRouteUseCase,
     private val finishRouteUseCase: FinishRouteUseCase,
-    private val deletePendingRouteUseCase: DeletePendingRouteUseCase,
+    private val deleteRouteWithPhotoMetadataUseCase: DeleteRouteWithPhotoMetadataUseCase,
     private val observeRouteWithPhotoMetadataUseCase: ObserveRouteWithPhotoMetadataContract
 ) : ViewModel() {
 
@@ -88,7 +88,7 @@ class ActivePathViewModel @Inject constructor(
         viewModelScope.launch {
             val routeId = state.value.ongoingRouteId
             routeId?.let {
-                deletePendingRouteUseCase(routeId = routeId)
+                deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
             }
 
             state.update { state ->

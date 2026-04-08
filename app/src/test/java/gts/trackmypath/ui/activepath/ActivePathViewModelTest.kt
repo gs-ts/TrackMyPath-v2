@@ -2,7 +2,7 @@ package gts.trackmypath.ui.activepath
 
 import app.cash.turbine.test
 import gts.trackmypath.MainDispatcherRule
-import gts.trackmypath.domain.route.DeletePendingRouteUseCase
+import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
 import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataContract
 import gts.trackmypath.domain.route.RouteId
@@ -149,7 +149,7 @@ class ActivePathViewModelTest {
             locationServiceManager = locationServiceManagerFake,
             startRouteUseCase = StartRouteUseCase(routeRepositoryFake),
             finishRouteUseCase = FinishRouteUseCase(routeRepositoryFake),
-            deletePendingRouteUseCase = DeletePendingRouteUseCase(routeRepositoryFake),
+            deleteRouteWithPhotoMetadataUseCase = DeleteRouteWithPhotoMetadataUseCase(routeRepositoryFake),
             observeRouteWithPhotoMetadataUseCase = object : ObserveRouteWithPhotoMetadataContract {
                 override fun invoke(routeId: RouteId): Flow<RouteWithPhotoMetadata> {
                     return routeRepositoryFake.observeRouteWithPhotoMetadataById(routeId)
