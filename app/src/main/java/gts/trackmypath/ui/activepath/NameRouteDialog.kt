@@ -3,10 +3,14 @@ package gts.trackmypath.ui.activepath
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -14,9 +18,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import gts.trackmypath.R
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 
 @Composable
@@ -32,20 +39,38 @@ internal fun NameRouteDialog(
             shape = RoundedCornerShape(size = 16.dp),
         ) {
             Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
                 horizontalAlignment = Alignment.Start,
             ) {
                 Text(
-                    text = "Give a name to your route:",
+                    textAlign = TextAlign.Center,
+                    text = "Give a name to your route",
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier
+                        .fillMaxWidth()
                         .padding(top = 32.dp)
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = 16.dp),
                 )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                ) {
+                    Icon(
+                        modifier = Modifier.size(16.dp),
+                        painter = painterResource(R.drawable.warning_icon),
+                        tint = MaterialTheme.colorScheme.outline,
+                        contentDescription = "warning"
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        style = MaterialTheme.typography.labelMedium,
+                        text = "Dismiss will not save your route.",
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
                 OutlinedTextField(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .fillMaxWidth(),
                     singleLine = true,
                     value = routeName,
                     onValueChange = { newValue ->
@@ -80,7 +105,7 @@ internal fun NameRouteDialog(
     }
 }
 
-@Preview
+@PreviewLightDark
 @Composable
 private fun NameRouteDialogPreview() {
     TrackMyPathV2Theme {

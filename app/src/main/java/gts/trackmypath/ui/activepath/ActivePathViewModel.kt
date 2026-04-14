@@ -79,7 +79,8 @@ class ActivePathViewModel @Inject constructor(
                 ongoingRouteId = null,
                 showNameRouteDialog = false,
                 routeNameInput = "",
-                photos = persistentListOf() // clear the photo stream
+                photos = persistentListOf(), // clear the photo stream
+                showSnackbarRouteSavedConfirmation = true
             )
         }
     }
@@ -99,6 +100,12 @@ class ActivePathViewModel @Inject constructor(
                     photos = persistentListOf() // clear the photo stream
                 )
             }
+        }
+    }
+
+    fun onHideSnackbarRouteSavedConfirmation() {
+        state.update { state ->
+            state.copy(showSnackbarRouteSavedConfirmation = false)
         }
     }
 
@@ -152,7 +159,8 @@ class ActivePathViewModel @Inject constructor(
         val ongoingRouteId: RouteId? = null,
         val photos: PersistentList<PhotoMetadata> = persistentListOf(),
         val routeNameInput: String = "",
-        val showNameRouteDialog: Boolean = false
+        val showNameRouteDialog: Boolean = false,
+        val showSnackbarRouteSavedConfirmation: Boolean = false
     ) {
 
         val isTracking: Boolean

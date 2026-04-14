@@ -91,6 +91,24 @@ class ActivePathViewModelTest {
         assertFalse(actual = state.showNameRouteDialog)
         assertEquals(expected = "", actual = state.routeNameInput)
         assertEquals(expected = persistentListOf<Any>(), actual = state.photos)
+        assertTrue(actual = state.showSnackbarRouteSavedConfirmation)
+    }
+
+    @Test
+    fun `when onHideSnackbarRouteSavedConfirmation is called then resets snackbar state`() = runTest {
+        val (viewModel, _, _) = createViewModel()
+
+        viewModel.onStartTrackPathClick()
+        // trigger the action that makes the showSnackbarRouteSavedConfirmation true
+        viewModel.onConfirmNameRouteDialogClick()
+
+        // check to ensure it is actually true before we hide it
+        assertTrue(actual = viewModel.state.value.showSnackbarRouteSavedConfirmation)
+
+        // call the hide function
+        viewModel.onHideSnackbarRouteSavedConfirmation()
+
+        assertFalse(actual = viewModel.state.value.showSnackbarRouteSavedConfirmation)
     }
 
     @Test
@@ -144,7 +162,7 @@ class ActivePathViewModelTest {
     private fun createViewModel(): Triple<ActivePathViewModel, LocationServiceManagerFake, RouteRepositoryFake> {
         val locationServiceManagerFake = LocationServiceManagerFake()
         val routeRepositoryFake = RouteRepositoryFake()
-        
+
         val activePathViewModel = ActivePathViewModel(
             locationServiceManager = locationServiceManagerFake,
             startRouteUseCase = StartRouteUseCase(routeRepositoryFake),

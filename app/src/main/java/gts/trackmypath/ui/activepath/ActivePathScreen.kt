@@ -20,6 +20,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -27,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +74,7 @@ fun ActivePathScreen(
         onRouteNameChange = viewModel::onRouteNameChange,
         onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
         onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick,
+        onHideSnackbarRouteSavedConfirmation = viewModel::onHideSnackbarRouteSavedConfirmation,
         onNavigateToPastRoutes = onNavigateToPastRoutes
     )
 }
@@ -84,6 +89,7 @@ private fun ActivePathContent(
     onRouteNameChange: (String) -> Unit,
     onConfirmNameRouteDialogClick: () -> Unit,
     onDismissNameRouteDialogClick: () -> Unit,
+    onHideSnackbarRouteSavedConfirmation: () -> Unit,
     onNavigateToPastRoutes: () -> Unit
 ) {
     var locationPermissionDialogType by remember { mutableStateOf(LocationPermissionDialogType.NONE) }
@@ -128,6 +134,27 @@ private fun ActivePathContent(
             onConfirmClick = onConfirmNameRouteDialogClick,
             onDismissClick = onDismissNameRouteDialogClick
         )
+    }
+
+    // hideSnackbarRouteSavedConfirmation ensures the LaunchedEffect always calls the
+    // most up-to-date version of the lambda without having to restart the effect itself.
+    // explanation:
+    // https://mrmans0n.github.io/compose-rules/rules/#be-mindful-of-the-arguments-you-use-inside-of-a-restarting-effect
+    val hideSnackbarRouteSavedConfirmation by rememberUpdatedState(newValue = onHideSnackbarRouteSavedConfirmation)
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(key1 = state.showSnackbarRouteSavedConfirmation) {
+        if (state.showSnackbarRouteSavedConfirmation) {
+            try {
+                snackbarHostState.showSnackbar(
+                    message = "Route saved successfully.",
+                    duration = SnackbarDuration.Short
+                )
+            } finally {
+                // If the snackbar finishes naturally, it clears the state.
+                // If the user navigates away and cancels the coroutine, it ALSO clears the state!
+                hideSnackbarRouteSavedConfirmation()
+            }
+        }
     }
 
     Scaffold(
@@ -200,6 +227,9 @@ private fun ActivePathContent(
                 )
             }
         },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
     ) { innerPadding ->
         if (state.photos.isEmpty()) {
             EmptyStream(
@@ -293,6 +323,7 @@ private fun ActivePathStartedPreview() {
                 onRouteNameChange = {},
                 onConfirmNameRouteDialogClick = {},
                 onDismissNameRouteDialogClick = {},
+                onHideSnackbarRouteSavedConfirmation = {},
                 onNavigateToPastRoutes = {}
             )
         }
@@ -310,6 +341,7 @@ private fun ActivePathStoppedPreview() {
             onRouteNameChange = {},
             onConfirmNameRouteDialogClick = {},
             onDismissNameRouteDialogClick = {},
+            onHideSnackbarRouteSavedConfirmation = {},
             onNavigateToPastRoutes = {}
         )
     }
