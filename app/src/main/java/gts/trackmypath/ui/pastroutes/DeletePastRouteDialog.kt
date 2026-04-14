@@ -13,7 +13,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
@@ -61,7 +61,7 @@ internal fun DeletePastRouteDialog(
     }
 }
 
-@Preview
+@PreviewLightDark
 @Composable
 private fun DeletePastRouteDialogPreview() {
     TrackMyPathV2Theme {

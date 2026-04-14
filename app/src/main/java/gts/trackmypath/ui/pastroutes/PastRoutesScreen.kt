@@ -24,11 +24,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +50,8 @@ import coil3.compose.SubcomposeAsyncImage
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
-import gts.trackmypath.ui.composables.shimmer
 import gts.trackmypath.ui.composables.LoadingView
+import gts.trackmypath.ui.composables.shimmer
 import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.mockdata.routesWithPhotoMetadataMock
 import gts.trackmypath.ui.model.RouteWithPhotoMetadataUiState
@@ -65,12 +71,14 @@ fun PastRoutesScreen(
         LoadingView()
     } else {
         PastRoutesContent(
-            routesWithPhotoMetadata = state.routesWithPhotoMetadata,
-            showDeletePastRouteDialog = state.showDeletePastRouteDialog,
+            state = state,
+//            routesWithPhotoMetadata = state.routesWithPhotoMetadata,
+//            showDeletePastRouteDialog = state.showDeletePastRouteDialog,
             onRouteCardClick = onNavigateToPastRouteDetail,
             onDeleteRouteClick = viewModel::onDeleteRouteClick,
             onConfirmDeleteRouteClick = viewModel::onConfirmDeleteRouteClick,
             onDismissDeleteRouteDialogClick = viewModel::onDismissDeleteRouteDialogClick,
+            onHideSnackbarRouteDeletedConfirmation = viewModel::onHideSnackbarRouteDeletedConfirmation,
             onBackClick = onBackClick
         )
     }
@@ -80,19 +88,40 @@ fun PastRoutesScreen(
 @Composable
 private fun PastRoutesContent(
     modifier: Modifier = Modifier,
-    routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState>,
-    showDeletePastRouteDialog: Boolean,
+    state: PastRoutesViewModel.State,
     onRouteCardClick: (RouteId) -> Unit,
     onDeleteRouteClick: (RouteId) -> Unit,
     onConfirmDeleteRouteClick: () -> Unit,
     onDismissDeleteRouteDialogClick: () -> Unit,
-    onBackClick: () -> Unit
+    onHideSnackbarRouteDeletedConfirmation: () -> Unit,
+    onBackClick: () -> Unit,
 ) {
-    if (showDeletePastRouteDialog) {
+    if (state.showDeletePastRouteDialog) {
         DeletePastRouteDialog(
             onConfirmClick = onConfirmDeleteRouteClick,
             onDismissClick = onDismissDeleteRouteDialogClick
         )
+    }
+
+    // hideSnackbarRouteSavedConfirmation ensures the LaunchedEffect always calls the
+    // most up-to-date version of the lambda without having to restart the effect itself.
+    // explanation:
+    // https://mrmans0n.github.io/compose-rules/rules/#be-mindful-of-the-arguments-you-use-inside-of-a-restarting-effect
+    val hideSnackbarRouteDeletedConfirmation by rememberUpdatedState(newValue = onHideSnackbarRouteDeletedConfirmation)
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(key1 = state.showSnackbarRouteDeletedConfirmation) {
+        if (state.showSnackbarRouteDeletedConfirmation) {
+            try {
+                snackbarHostState.showSnackbar(
+                    message = "Route deleted successfully.",
+                    duration = SnackbarDuration.Short
+                )
+            } finally {
+                // If the snackbar finishes naturally, it clears the state.
+                // If the user navigates away and cancels the coroutine, it ALSO clears the state!
+                hideSnackbarRouteDeletedConfirmation()
+            }
+        }
     }
 
     Scaffold(
@@ -112,13 +141,16 @@ private fun PastRoutesContent(
                 },
             )
         },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
     ) { innerPadding ->
-        if (routesWithPhotoMetadata.isNotEmpty()) {
+        if (state.routesWithPhotoMetadata.isNotEmpty()) {
             PastRoutesList(
                 modifier = Modifier
                     .padding(innerPadding)
                     .padding(horizontal = 24.dp),
-                routesWithPhotoMetadata = routesWithPhotoMetadata,
+                routesWithPhotoMetadata = state.routesWithPhotoMetadata,
                 onRouteCardClick = onRouteCardClick,
                 onDeleteRouteClick = onDeleteRouteClick
             )
@@ -287,12 +319,12 @@ private fun PastRoutesPreview() {
     TrackMyPathV2Theme {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             PastRoutesContent(
-                showDeletePastRouteDialog = false,
-                routesWithPhotoMetadata = routesWithPhotoMetadataMock,
+                state = PastRoutesViewModel.State(routesWithPhotoMetadata = routesWithPhotoMetadataMock),
                 onRouteCardClick = {},
                 onDeleteRouteClick = {},
                 onConfirmDeleteRouteClick = {},
                 onDismissDeleteRouteDialogClick = {},
+                onHideSnackbarRouteDeletedConfirmation = {},
                 onBackClick = {},
             )
         }

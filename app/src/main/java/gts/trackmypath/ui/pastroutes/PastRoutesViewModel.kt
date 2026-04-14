@@ -26,16 +26,19 @@ class PastRoutesViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val routeIdToDelete = MutableStateFlow<RouteId?>(null)
+    private val showSnackbarRouteDeletedConfirmation = MutableStateFlow(false)
 
     val state: StateFlow<State> = combine(
         observeAllRoutesWithPhotoMetadataUseCase(),
-        routeIdToDelete
-    ) { routesWithPhotoMetadata, routeIdToDelete ->
+        routeIdToDelete,
+        showSnackbarRouteDeletedConfirmation
+    ) { routesWithPhotoMetadata, routeIdToDelete, showSnackbarRouteDeletedConfirmation ->
         State(
             isLoading = false,
             showDeletePastRouteDialog = routeIdToDelete != null,
             routeIdToDelete = routeIdToDelete,
-            routesWithPhotoMetadata = routesWithPhotoMetadata.toUiState()
+            routesWithPhotoMetadata = routesWithPhotoMetadata.toUiState(),
+            showSnackbarRouteDeletedConfirmation = showSnackbarRouteDeletedConfirmation
         )
     }.stateIn(
         scope = viewModelScope,
@@ -52,7 +55,12 @@ class PastRoutesViewModel @Inject constructor(
         viewModelScope.launch {
             deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
             routeIdToDelete.update { null }
+            showSnackbarRouteDeletedConfirmation.update { true }
         }
+    }
+
+    fun onHideSnackbarRouteDeletedConfirmation() {
+        showSnackbarRouteDeletedConfirmation.update { false }
     }
 
     fun onDismissDeleteRouteDialogClick() {
@@ -63,6 +71,7 @@ class PastRoutesViewModel @Inject constructor(
         val isLoading: Boolean = true,
         val showDeletePastRouteDialog: Boolean = false,
         val routeIdToDelete: RouteId? = null,
-        val routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState> = persistentListOf()
+        val routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState> = persistentListOf(),
+        val showSnackbarRouteDeletedConfirmation: Boolean = false,
     )
 }
