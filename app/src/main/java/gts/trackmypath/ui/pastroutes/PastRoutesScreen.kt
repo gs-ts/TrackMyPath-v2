@@ -44,7 +44,7 @@ import coil3.compose.SubcomposeAsyncImage
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
-import gts.trackmypath.ui.activepath.shimmer
+import gts.trackmypath.ui.composables.shimmer
 import gts.trackmypath.ui.composables.LoadingView
 import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.mockdata.routesWithPhotoMetadataMock

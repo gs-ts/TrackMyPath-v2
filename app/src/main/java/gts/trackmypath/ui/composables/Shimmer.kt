@@ -1,4 +1,4 @@
-package gts.trackmypath.ui.activepath
+package gts.trackmypath.ui.composables
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing

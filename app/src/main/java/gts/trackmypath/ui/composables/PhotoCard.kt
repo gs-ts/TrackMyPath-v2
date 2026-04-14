@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.LocalAsyncImagePreviewHandler
 import coil3.compose.SubcomposeAsyncImage
 import gts.trackmypath.domain.photometadata.PhotoMetadata
-import gts.trackmypath.ui.activepath.shimmer
 import gts.trackmypath.ui.mockdata.photoMetadataMock
 import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
