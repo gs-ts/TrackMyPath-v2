@@ -2,6 +2,8 @@ package gts.trackmypath.ui.activepath
 
 import app.cash.turbine.test
 import gts.trackmypath.MainDispatcherRule
+import gts.trackmypath.domain.ApplyPlaceFiltersUseCase
+import gts.trackmypath.domain.PlaceFilter
 import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
 import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataContract
@@ -157,6 +159,52 @@ class ActivePathViewModelTest {
         }
     }
 
+    @Test
+    fun `onPlaceFilterClick shows bottom sheet`() = runTest {
+        val (viewModel, _, _) = createViewModel()
+
+        viewModel.onPlaceFilterClick()
+
+        assertTrue(actual = viewModel.state.value.showPlaceFilterBottomSheet)
+    }
+
+    @Test
+    fun `onPlaceFilterSelect toggles place filter selection`() = runTest {
+        val (viewModel, _, _) = createViewModel()
+        val filter = PlaceFilter.CULTURE
+
+        viewModel.onPlaceFilterSelect(placeFilter = filter)
+        assertTrue(actual = viewModel.state.value.selectedPlaceFilters.contains(filter))
+
+        viewModel.onPlaceFilterSelect(placeFilter = filter)
+        assertFalse(actual = viewModel.state.value.selectedPlaceFilters.contains(filter))
+    }
+
+    @Test
+    fun `given selected place filters when onResetPlaceFiltersClick then clears all selected filters`() = runTest {
+        val (viewModel, _, _) = createViewModel()
+        val filter1 = PlaceFilter.CULTURE
+        val filter2 = PlaceFilter.ENTERTAINMENT
+
+        viewModel.onPlaceFilterSelect(filter1)
+        viewModel.onPlaceFilterSelect(filter2)
+        assertEquals(expected = 2, actual = viewModel.state.value.selectedPlaceFilters.size)
+
+        viewModel.onResetPlaceFiltersClick()
+        assertTrue(actual = viewModel.state.value.selectedPlaceFilters.isEmpty())
+    }
+
+    @Test
+    fun `given place filter bottom sheet is open when onDismissPlaceFilterBottomSheet then hides bottom sheet`() = runTest {
+        val (viewModel, _, _) = createViewModel()
+
+        viewModel.onPlaceFilterClick() // Show it first
+        assertTrue(actual = viewModel.state.value.showPlaceFilterBottomSheet)
+
+        viewModel.onDismissPlaceFilterBottomSheet()
+        assertFalse(actual = viewModel.state.value.showPlaceFilterBottomSheet)
+    }
+
     // --- Helper classes and setup ---
 
     private fun createViewModel(): Triple<ActivePathViewModel, LocationServiceManagerFake, RouteRepositoryFake> {
@@ -167,6 +215,7 @@ class ActivePathViewModelTest {
             locationServiceManager = locationServiceManagerFake,
             startRouteUseCase = StartRouteUseCase(routeRepositoryFake),
             finishRouteUseCase = FinishRouteUseCase(routeRepositoryFake),
+            applyPlaceFiltersUseCase = ApplyPlaceFiltersUseCase(),
             deleteRouteWithPhotoMetadataUseCase = DeleteRouteWithPhotoMetadataUseCase(routeRepositoryFake),
             observeRouteWithPhotoMetadataUseCase = object : ObserveRouteWithPhotoMetadataContract {
                 override fun invoke(routeId: RouteId): Flow<RouteWithPhotoMetadata> {
