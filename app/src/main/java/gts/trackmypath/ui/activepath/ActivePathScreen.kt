@@ -24,6 +24,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +50,7 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
+import gts.trackmypath.domain.PlaceFilter
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.composables.PhotoCard
@@ -57,6 +59,7 @@ import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -71,6 +74,10 @@ fun ActivePathScreen(
         state = state,
         onStartTrackPathClick = viewModel::onStartTrackPathClick,
         onStopTrackPathClick = viewModel::onStopTrackPathClick,
+        onPlaceFiltersClick = viewModel::onPlaceFilterClick,
+        onPlaceFilterSelect = viewModel::onPlaceFilterSelect,
+        onResetPlaceFiltersClick = viewModel::onResetPlaceFiltersClick,
+        onDismissPlaceFilterBottomSheet = viewModel::onDismissPlaceFilterBottomSheet,
         onRouteNameChange = viewModel::onRouteNameChange,
         onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
         onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick,
@@ -86,6 +93,10 @@ private fun ActivePathContent(
     state: ActivePathViewModel.State,
     onStartTrackPathClick: () -> Unit,
     onStopTrackPathClick: () -> Unit,
+    onPlaceFiltersClick: () -> Unit,
+    onPlaceFilterSelect: (PlaceFilter) -> Unit,
+    onResetPlaceFiltersClick: () -> Unit,
+    onDismissPlaceFilterBottomSheet: () -> Unit,
     onRouteNameChange: (String) -> Unit,
     onConfirmNameRouteDialogClick: () -> Unit,
     onDismissNameRouteDialogClick: () -> Unit,
@@ -157,6 +168,18 @@ private fun ActivePathContent(
         }
     }
 
+    val sheetState = rememberModalBottomSheetState()
+    if (state.showPlaceFilterBottomSheet) {
+        PlaceFilterBottomSheet(
+            sheetState = sheetState,
+            placeFilters = PlaceFilter.entries.toList().toPersistentList(),
+            selectedPlaceFilters = state.selectedPlaceFilters,
+            onPlaceFilterSelect = onPlaceFilterSelect,
+            onResetPlaceFiltersClick = onResetPlaceFiltersClick,
+            onDismissRequest = onDismissPlaceFilterBottomSheet
+        )
+    }
+
     Scaffold(
         // https://developer.android.com/develop/ui/compose/testing/interoperability
         modifier = modifier.semantics { testTagsAsResourceId = true },
@@ -166,6 +189,12 @@ private fun ActivePathContent(
                     Text(text = "track my path")
                 },
                 actions = {
+                    IconButton(onClick = onPlaceFiltersClick) {
+                        Icon(
+                            painter = painterResource(R.drawable.place_filter_icon),
+                            contentDescription = "Filter places"
+                        )
+                    }
                     IconButton(onClick = onNavigateToPastRoutes) {
                         Icon(
                             painter = painterResource(R.drawable.routes_icon),
@@ -320,6 +349,10 @@ private fun ActivePathStartedPreview() {
                 ),
                 onStartTrackPathClick = {},
                 onStopTrackPathClick = {},
+                onPlaceFiltersClick = {},
+                onPlaceFilterSelect = {},
+                onResetPlaceFiltersClick = {},
+                onDismissPlaceFilterBottomSheet = {},
                 onRouteNameChange = {},
                 onConfirmNameRouteDialogClick = {},
                 onDismissNameRouteDialogClick = {},
@@ -338,6 +371,10 @@ private fun ActivePathStoppedPreview() {
             state = ActivePathViewModel.State(photos = persistentListOf()),
             onStartTrackPathClick = {},
             onStopTrackPathClick = {},
+            onPlaceFiltersClick = {},
+            onPlaceFilterSelect = {},
+            onResetPlaceFiltersClick = {},
+            onDismissPlaceFilterBottomSheet = {},
             onRouteNameChange = {},
             onConfirmNameRouteDialogClick = {},
             onDismissNameRouteDialogClick = {},
