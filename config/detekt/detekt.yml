@@ -747,6 +747,9 @@ Compose:
     active: true
   ComposableNaming:
     active: true
+  ComposableNestingDepth: # Maximum nesting depth allowed for content emitters inside a single @Composable function.
+    active: true # Opt-in, disabled by default.
+    composableNestingDepthThreshold: 4 # Defaults to 3.
   ComposableParamOrder:
     active: false
   CompositionLocalAllowlist:

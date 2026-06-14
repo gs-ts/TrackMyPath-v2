@@ -31,7 +31,7 @@ uiautomator = "2.4.0-beta02"
 benchmarkMacroJunit4 = "1.5.0-alpha05"
 turbine = "1.2.1"
 detekt = "2.0.0-alpha.3"
-detekt-compose-rules = "0.5.8"
+detekt-compose-rules = "0.6.0"
 
 [libraries]
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlin-coroutines" }
