@@ -119,6 +119,8 @@ dependencies {
     implementation(libs.coil3.network)
 
     ksp(libs.hilt.compiler)
+    ksp(libs.kotlin.metadata.jvm) // TODO remove this when Hilt supports Kotlin 2.4.0
+    annotationProcessor(libs.kotlin.metadata.jvm) // TODO remove this when Hilt supports Kotlin 2.4.0
     ksp(libs.androidx.room.compiler)
 
     detektPlugins(libs.detekt.rules.ktlint.wrapper)
