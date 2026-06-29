@@ -63,12 +63,6 @@ configure<ApplicationExtension> {
 
 kotlin {
     jvmToolchain(jdkVersion = 17)
-    compilerOptions {
-        // https://kotlinlang.org/docs/whatsnew23.html#explicit-backing-fields
-        freeCompilerArgs.add("-Xexplicit-backing-fields")
-        // https://kotlinlang.org/docs/whatsnew22.html#language
-        freeCompilerArgs.add("-Xcontext-parameters")
-    }
 }
 
 room { // https://developer.android.com/jetpack/androidx/releases/room#gradle-plugin
