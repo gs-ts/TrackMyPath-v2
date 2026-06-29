@@ -72,9 +72,9 @@ class ActivePathViewModel @Inject constructor(
     fun onPlaceFilterSelect(placeFilter: PlaceFilter) {
         state.update { state ->
             val newPlaceFilters = if (state.selectedPlaceFilters.contains(placeFilter)) {
-                state.selectedPlaceFilters.remove(element = placeFilter)
+                state.selectedPlaceFilters.removing(element = placeFilter)
             } else {
-                state.selectedPlaceFilters.add(element = placeFilter)
+                state.selectedPlaceFilters.adding(element = placeFilter)
             }
             state.copy(selectedPlaceFilters = newPlaceFilters)
         }
