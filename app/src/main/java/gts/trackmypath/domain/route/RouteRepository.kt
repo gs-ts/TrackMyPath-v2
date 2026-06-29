@@ -14,6 +14,8 @@ interface RouteRepository {
         metadata: Map<String, String>
     )
 
+    suspend fun renameRoute(routeId: RouteId, newDisplayName: String)
+
     suspend fun deleteRoute(routeId: RouteId)
 
     fun observeRouteWithPhotoMetadataById(routeId: RouteId): Flow<RouteWithPhotoMetadata>

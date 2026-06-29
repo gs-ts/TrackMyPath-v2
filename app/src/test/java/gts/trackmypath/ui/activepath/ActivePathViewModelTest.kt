@@ -264,6 +264,11 @@ class ActivePathViewModelTest {
             finishedRoutes.add(Pair(routeId, displayName))
         }
 
+        override suspend fun renameRoute(
+            routeId: RouteId,
+            newDisplayName: String
+        ) {}
+
         override suspend fun deleteRoute(routeId: RouteId) {
             deletedRouteIds.add(routeId)
         }

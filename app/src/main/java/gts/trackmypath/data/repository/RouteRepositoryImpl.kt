@@ -35,19 +35,20 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
         displayName: String,
         metadata: Map<String, String>
     ) {
-        // Fetch the pending route we created at the startRoute
-        val existingRoute = routeDao.getRouteById(routeId = routeId.id)
+        Log.d("RouteRepository", "finishRoute with routeId ${routeId.id} and displayName $displayName")
+        routeDao.finishRouteById(
+            routeId = routeId.id,
+            displayName = displayName,
+            metadata = metadata
+        )
+    }
 
-        if (existingRoute != null) {
-            // create an updated copy with the user's input
-            val completedRoute = existingRoute.copy(
-                displayName = displayName,
-                metadata = metadata
-            )
-
-            routeDao.updateRoute(route = completedRoute)
-            Log.d("RouteRepository", "finishRoute with routeId ${routeId.id} and displayName $displayName")
-        }
+    override suspend fun renameRoute(
+        routeId: RouteId,
+        newDisplayName: String
+    ) {
+        Log.d("RouteRepository", "renameRoute with routeId ${routeId.id} and newDisplayName $newDisplayName")
+        routeDao.updateRouteName(routeId = routeId.id, newDisplayName = newDisplayName)
     }
 
     override suspend fun deleteRoute(routeId: RouteId) {

@@ -101,9 +101,15 @@ internal class RouteDaoFake : RouteDao {
 
     override suspend fun insertRoute(route: RouteEntity): Long = 0L
 
-    override suspend fun updateRoute(route: RouteEntity) {}
+    override suspend fun finishRouteById(
+        routeId: Long,
+        displayName: String,
+        metadata: Map<String, String>
+    ) {}
 
     override suspend fun getRouteById(routeId: Long): RouteEntity? = null
+
+    override suspend fun updateRouteName(routeId: Long, newDisplayName: String) {}
 
     override suspend fun deleteRouteById(routeId: Long) {}
 
