@@ -45,7 +45,20 @@ class PastRoutesViewModel @Inject constructor(
         }
     }
 
-    fun onRenameRouteClick(routeId: RouteId) {
+    fun onAction(action: Action) {
+        when (action) {
+            is Action.OnRenameRouteClick -> onRenameRouteClick(action.routeId)
+            is Action.OnRouteNameChange -> onRouteNameChange(action.newName)
+            Action.OnConfirmNameRouteDialogClick -> onConfirmNameRouteDialogClick()
+            Action.OnDismissNameRouteDialogClick -> onDismissNameRouteDialogClick()
+            is Action.OnDeleteRouteClick -> onDeleteRouteClick(action.routeId)
+            Action.OnConfirmDeleteRouteClick -> onConfirmDeleteRouteClick()
+            Action.OnDismissDeleteRouteDialogClick -> onDismissDeleteRouteDialogClick()
+            Action.HideSnackbarRouteDeletedConfirmation -> onHideSnackbarRouteDeletedConfirmation()
+        }
+    }
+
+    private fun onRenameRouteClick(routeId: RouteId) {
         state.update { state ->
             state.copy(
                 routeToRename = routeId,
@@ -56,11 +69,11 @@ class PastRoutesViewModel @Inject constructor(
         }
     }
 
-    fun onRouteNameChange(newRouteName: String) {
+    private fun onRouteNameChange(newRouteName: String) {
         state.update { state -> state.copy(routeNameInput = newRouteName) }
     }
 
-    fun onConfirmNameRouteDialogClick() {
+    private fun onConfirmNameRouteDialogClick() {
         val routeId = state.value.routeToRename
         val routeName = state.value.routeNameInput
         routeId?.let {
@@ -74,7 +87,7 @@ class PastRoutesViewModel @Inject constructor(
         onDismissNameRouteDialogClick()
     }
 
-    fun onDismissNameRouteDialogClick() {
+    private fun onDismissNameRouteDialogClick() {
         state.update { state ->
             state.copy(
                 routeToRename = null,
@@ -83,13 +96,13 @@ class PastRoutesViewModel @Inject constructor(
         }
     }
 
-    fun onDeleteRouteClick(routeId: RouteId) {
+    private fun onDeleteRouteClick(routeId: RouteId) {
         state.update { state ->
             state.copy(routeIdToDelete = routeId)
         }
     }
 
-    fun onConfirmDeleteRouteClick() {
+    private fun onConfirmDeleteRouteClick() {
         val routeId = state.value.routeIdToDelete ?: return
         viewModelScope.launch {
             deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
@@ -102,13 +115,13 @@ class PastRoutesViewModel @Inject constructor(
         }
     }
 
-    fun onHideSnackbarRouteDeletedConfirmation() {
+    private fun onHideSnackbarRouteDeletedConfirmation() {
         state.update { state ->
             state.copy(showSnackbarRouteDeletedConfirmation = false)
         }
     }
 
-    fun onDismissDeleteRouteDialogClick() {
+    private fun onDismissDeleteRouteDialogClick() {
         state.update { state ->
             state.copy(
                 routeIdToDelete = null
@@ -130,5 +143,23 @@ class PastRoutesViewModel @Inject constructor(
 
         val showDeletePastRouteDialog: Boolean
             get() = routeIdToDelete != null
+    }
+
+    sealed interface Action {
+        data class OnRenameRouteClick(val routeId: RouteId) : Action
+
+        data class OnRouteNameChange(val newName: String) : Action
+
+        data object OnConfirmNameRouteDialogClick : Action
+
+        data object OnDismissNameRouteDialogClick : Action
+
+        data class OnDeleteRouteClick(val routeId: RouteId) : Action
+
+        data object OnConfirmDeleteRouteClick : Action
+
+        data object OnDismissDeleteRouteDialogClick : Action
+
+        data object HideSnackbarRouteDeletedConfirmation : Action
     }
 }

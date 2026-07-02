@@ -78,14 +78,7 @@ fun PastRoutesScreen(
         PastRoutesContent(
             state = state,
             onRouteCardClick = onNavigateToPastRouteDetail,
-            onRenameRouteClick = viewModel::onRenameRouteClick,
-            onRouteNameChange = viewModel::onRouteNameChange,
-            onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
-            onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick,
-            onDeleteRouteClick = viewModel::onDeleteRouteClick,
-            onConfirmDeleteRouteClick = viewModel::onConfirmDeleteRouteClick,
-            onDismissDeleteRouteDialogClick = viewModel::onDismissDeleteRouteDialogClick,
-            onHideSnackbarRouteDeletedConfirmation = viewModel::onHideSnackbarRouteDeletedConfirmation,
+            onAction = viewModel::onAction,
             onBackClick = onBackClick
         )
     }
@@ -97,30 +90,23 @@ private fun PastRoutesContent(
     modifier: Modifier = Modifier,
     state: PastRoutesViewModel.State,
     onRouteCardClick: (RouteId) -> Unit,
-    onRenameRouteClick: (RouteId) -> Unit,
-    onRouteNameChange: (String) -> Unit,
-    onConfirmNameRouteDialogClick: () -> Unit,
-    onDismissNameRouteDialogClick: () -> Unit,
-    onDeleteRouteClick: (RouteId) -> Unit,
-    onConfirmDeleteRouteClick: () -> Unit,
-    onDismissDeleteRouteDialogClick: () -> Unit,
-    onHideSnackbarRouteDeletedConfirmation: () -> Unit,
+    onAction: (PastRoutesViewModel.Action) -> Unit,
     onBackClick: () -> Unit,
 ) {
     if (state.showRenameRouteDialog) {
         NameRouteDialog(
             routeName = state.routeNameInput,
             isRenamingState = true,
-            onRouteNameChange = onRouteNameChange,
-            onConfirmClick = onConfirmNameRouteDialogClick,
-            onDismissClick = onDismissNameRouteDialogClick
+            onRouteNameChange = { onAction(PastRoutesViewModel.Action.OnRouteNameChange(newName = it)) },
+            onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmNameRouteDialogClick) },
+            onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissNameRouteDialogClick) }
         )
     }
 
     if (state.showDeletePastRouteDialog) {
         DeletePastRouteDialog(
-            onConfirmClick = onConfirmDeleteRouteClick,
-            onDismissClick = onDismissDeleteRouteDialogClick
+            onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmDeleteRouteClick) },
+            onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissDeleteRouteDialogClick) }
         )
     }
 
@@ -128,7 +114,11 @@ private fun PastRoutesContent(
     // most up-to-date version of the lambda without having to restart the effect itself.
     // explanation:
     // https://mrmans0n.github.io/compose-rules/rules/#be-mindful-of-the-arguments-you-use-inside-of-a-restarting-effect
-    val hideSnackbarRouteDeletedConfirmation by rememberUpdatedState(newValue = onHideSnackbarRouteDeletedConfirmation)
+    val hideSnackbarRouteDeletedConfirmation by rememberUpdatedState(
+        newValue = {
+            onAction(PastRoutesViewModel.Action.HideSnackbarRouteDeletedConfirmation)
+        }
+    )
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(key1 = state.showSnackbarRouteDeletedConfirmation) {
         if (state.showSnackbarRouteDeletedConfirmation) {
@@ -173,8 +163,7 @@ private fun PastRoutesContent(
                     .padding(horizontal = 24.dp),
                 routesWithPhotoMetadata = state.routesWithPhotoMetadata,
                 onRouteCardClick = onRouteCardClick,
-                onRenameRouteClick = onRenameRouteClick,
-                onDeleteRouteClick = onDeleteRouteClick
+                onAction = onAction
             )
         } else {
             EmptyPastRoutes(
@@ -192,8 +181,7 @@ private fun PastRoutesList(
     modifier: Modifier = Modifier,
     routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState>,
     onRouteCardClick: (RouteId) -> Unit,
-    onRenameRouteClick: (RouteId) -> Unit,
-    onDeleteRouteClick: (RouteId) -> Unit
+    onAction: (PastRoutesViewModel.Action) -> Unit
 ) {
     LazyColumn(
         modifier = modifier,
@@ -208,8 +196,7 @@ private fun PastRoutesList(
                 modifier = Modifier.animateItem(),
                 routeWithPhotoMetadata = routeWithPhotoMetadata,
                 onRouteCardClick = onRouteCardClick,
-                onRenameClick = onRenameRouteClick,
-                onDeleteClick = onDeleteRouteClick
+                onAction = onAction
             )
         }
     }
@@ -243,8 +230,7 @@ private fun RouteCard(
     modifier: Modifier = Modifier,
     routeWithPhotoMetadata: RouteWithPhotoMetadataUiState,
     onRouteCardClick: (RouteId) -> Unit,
-    onRenameClick: (RouteId) -> Unit,
-    onDeleteClick: (RouteId) -> Unit
+    onAction: (PastRoutesViewModel.Action) -> Unit
 ) {
     @Suppress("MagicNumber")
     val numberOfPreviewPhotos = 3
@@ -277,8 +263,7 @@ private fun RouteCard(
                 )
                 PastRouteDropdownMenu(
                     routeId = routeWithPhotoMetadata.routeId,
-                    onRenameClick = onRenameClick,
-                    onDeleteClick = onDeleteClick,
+                    onClick = onAction,
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -337,8 +322,7 @@ private fun PhotoPreview(
 fun PastRouteDropdownMenu(
     modifier: Modifier = Modifier,
     routeId: RouteId,
-    onRenameClick: (RouteId) -> Unit,
-    onDeleteClick: (RouteId) -> Unit
+    onClick: (PastRoutesViewModel.Action) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -362,14 +346,14 @@ fun PastRouteDropdownMenu(
                 text = { Text(text = "Rename") },
                 onClick = {
                     expanded = false
-                    onRenameClick(routeId)
+                    onClick(PastRoutesViewModel.Action.OnRenameRouteClick(routeId = routeId))
                 }
             )
             DropdownMenuItem(
                 text = { Text(text = "Delete") },
                 onClick = {
                     expanded = false
-                    onDeleteClick(routeId)
+                    onClick(PastRoutesViewModel.Action.OnDeleteRouteClick(routeId = routeId))
                 }
             )
         }
@@ -384,14 +368,7 @@ private fun PastRoutesPreview() {
             PastRoutesContent(
                 state = PastRoutesViewModel.State(routesWithPhotoMetadata = routesWithPhotoMetadataMock),
                 onRouteCardClick = {},
-                onRenameRouteClick = {},
-                onRouteNameChange = {},
-                onConfirmNameRouteDialogClick = {},
-                onDismissNameRouteDialogClick = {},
-                onDeleteRouteClick = {},
-                onConfirmDeleteRouteClick = {},
-                onDismissDeleteRouteDialogClick = {},
-                onHideSnackbarRouteDeletedConfirmation = {},
+                onAction = {},
                 onBackClick = {},
             )
         }
@@ -406,8 +383,7 @@ private fun RouteCardPreview() {
             RouteCard(
                 routeWithPhotoMetadata = routesWithPhotoMetadataMock.first(),
                 onRouteCardClick = {},
-                onRenameClick = {},
-                onDeleteClick = {}
+                onAction = {}
             )
         }
     }
