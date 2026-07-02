@@ -19,6 +19,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,8 +35,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +55,7 @@ import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.composables.LoadingView
+import gts.trackmypath.ui.composables.NameRouteDialog
 import gts.trackmypath.ui.composables.shimmer
 import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.mockdata.routesWithPhotoMetadataMock
@@ -72,9 +77,11 @@ fun PastRoutesScreen(
     } else {
         PastRoutesContent(
             state = state,
-//            routesWithPhotoMetadata = state.routesWithPhotoMetadata,
-//            showDeletePastRouteDialog = state.showDeletePastRouteDialog,
             onRouteCardClick = onNavigateToPastRouteDetail,
+            onRenameRouteClick = viewModel::onRenameRouteClick,
+            onRouteNameChange = viewModel::onRouteNameChange,
+            onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
+            onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick,
             onDeleteRouteClick = viewModel::onDeleteRouteClick,
             onConfirmDeleteRouteClick = viewModel::onConfirmDeleteRouteClick,
             onDismissDeleteRouteDialogClick = viewModel::onDismissDeleteRouteDialogClick,
@@ -90,12 +97,26 @@ private fun PastRoutesContent(
     modifier: Modifier = Modifier,
     state: PastRoutesViewModel.State,
     onRouteCardClick: (RouteId) -> Unit,
+    onRenameRouteClick: (RouteId) -> Unit,
+    onRouteNameChange: (String) -> Unit,
+    onConfirmNameRouteDialogClick: () -> Unit,
+    onDismissNameRouteDialogClick: () -> Unit,
     onDeleteRouteClick: (RouteId) -> Unit,
     onConfirmDeleteRouteClick: () -> Unit,
     onDismissDeleteRouteDialogClick: () -> Unit,
     onHideSnackbarRouteDeletedConfirmation: () -> Unit,
     onBackClick: () -> Unit,
 ) {
+    if (state.showRenameRouteDialog) {
+        NameRouteDialog(
+            routeName = state.routeNameInput,
+            isRenamingState = true,
+            onRouteNameChange = onRouteNameChange,
+            onConfirmClick = onConfirmNameRouteDialogClick,
+            onDismissClick = onDismissNameRouteDialogClick
+        )
+    }
+
     if (state.showDeletePastRouteDialog) {
         DeletePastRouteDialog(
             onConfirmClick = onConfirmDeleteRouteClick,
@@ -152,6 +173,7 @@ private fun PastRoutesContent(
                     .padding(horizontal = 24.dp),
                 routesWithPhotoMetadata = state.routesWithPhotoMetadata,
                 onRouteCardClick = onRouteCardClick,
+                onRenameRouteClick = onRenameRouteClick,
                 onDeleteRouteClick = onDeleteRouteClick
             )
         } else {
@@ -170,6 +192,7 @@ private fun PastRoutesList(
     modifier: Modifier = Modifier,
     routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState>,
     onRouteCardClick: (RouteId) -> Unit,
+    onRenameRouteClick: (RouteId) -> Unit,
     onDeleteRouteClick: (RouteId) -> Unit
 ) {
     LazyColumn(
@@ -185,6 +208,7 @@ private fun PastRoutesList(
                 modifier = Modifier.animateItem(),
                 routeWithPhotoMetadata = routeWithPhotoMetadata,
                 onRouteCardClick = onRouteCardClick,
+                onRenameClick = onRenameRouteClick,
                 onDeleteClick = onDeleteRouteClick
             )
         }
@@ -219,6 +243,7 @@ private fun RouteCard(
     modifier: Modifier = Modifier,
     routeWithPhotoMetadata: RouteWithPhotoMetadataUiState,
     onRouteCardClick: (RouteId) -> Unit,
+    onRenameClick: (RouteId) -> Unit,
     onDeleteClick: (RouteId) -> Unit
 ) {
     @Suppress("MagicNumber")
@@ -250,16 +275,11 @@ private fun RouteCard(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
-                IconButton(
-                    onClick = { onDeleteClick(routeWithPhotoMetadata.routeId) }
-                ) {
-                    Icon(
-                        modifier = Modifier.size(20.dp),
-                        painter = painterResource(R.drawable.delete_icon),
-                        contentDescription = "Delete route",
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                }
+                PastRouteDropdownMenu(
+                    routeId = routeWithPhotoMetadata.routeId,
+                    onRenameClick = onRenameClick,
+                    onDeleteClick = onDeleteClick,
+                )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -313,6 +333,49 @@ private fun PhotoPreview(
     )
 }
 
+@Composable
+fun PastRouteDropdownMenu(
+    modifier: Modifier = Modifier,
+    routeId: RouteId,
+    onRenameClick: (RouteId) -> Unit,
+    onDeleteClick: (RouteId) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                modifier = Modifier.size(20.dp),
+                painter = painterResource(R.drawable.dropdown_menu_icon),
+                contentDescription = "Past route menu",
+                tint = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+        DropdownMenu(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+            }
+        ) {
+            DropdownMenuItem(
+                text = { Text(text = "Rename") },
+                onClick = {
+                    expanded = false
+                    onRenameClick(routeId)
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(text = "Delete") },
+                onClick = {
+                    expanded = false
+                    onDeleteClick(routeId)
+                }
+            )
+        }
+    }
+}
+
 @PreviewLightDark
 @Composable
 private fun PastRoutesPreview() {
@@ -321,6 +384,10 @@ private fun PastRoutesPreview() {
             PastRoutesContent(
                 state = PastRoutesViewModel.State(routesWithPhotoMetadata = routesWithPhotoMetadataMock),
                 onRouteCardClick = {},
+                onRenameRouteClick = {},
+                onRouteNameChange = {},
+                onConfirmNameRouteDialogClick = {},
+                onDismissNameRouteDialogClick = {},
                 onDeleteRouteClick = {},
                 onConfirmDeleteRouteClick = {},
                 onDismissDeleteRouteDialogClick = {},
@@ -339,6 +406,7 @@ private fun RouteCardPreview() {
             RouteCard(
                 routeWithPhotoMetadata = routesWithPhotoMetadataMock.first(),
                 onRouteCardClick = {},
+                onRenameClick = {},
                 onDeleteClick = {}
             )
         }

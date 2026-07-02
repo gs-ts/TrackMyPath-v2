@@ -5,73 +5,130 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.ObserveAllRoutesWithPhotoMetadataUseCase
+import gts.trackmypath.domain.route.RenameRouteUseCase
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.model.RouteWithPhotoMetadataUiState
 import gts.trackmypath.ui.model.toUiState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PastRoutesViewModel @Inject constructor(
-    observeAllRoutesWithPhotoMetadataUseCase: ObserveAllRoutesWithPhotoMetadataUseCase,
+    private val observeAllRoutesWithPhotoMetadataUseCase: ObserveAllRoutesWithPhotoMetadataUseCase,
+    private val renameRouteUseCase: RenameRouteUseCase,
     private val deleteRouteWithPhotoMetadataUseCase: DeleteRouteWithPhotoMetadataUseCase
 ) : ViewModel() {
 
-    private val routeIdToDelete = MutableStateFlow<RouteId?>(null)
-    private val showSnackbarRouteDeletedConfirmation = MutableStateFlow(false)
+    val state: StateFlow<State>
+        field = MutableStateFlow(State())
 
-    val state: StateFlow<State> = combine(
-        observeAllRoutesWithPhotoMetadataUseCase(),
-        routeIdToDelete,
-        showSnackbarRouteDeletedConfirmation
-    ) { routesWithPhotoMetadata, routeIdToDelete, showSnackbarRouteDeletedConfirmation ->
-        State(
-            isLoading = false,
-            showDeletePastRouteDialog = routeIdToDelete != null,
-            routeIdToDelete = routeIdToDelete,
-            routesWithPhotoMetadata = routesWithPhotoMetadata.toUiState(),
-            showSnackbarRouteDeletedConfirmation = showSnackbarRouteDeletedConfirmation
-        )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5000),
-        initialValue = State()
-    )
+    init {
+        observeAllRoutesWithPhotoMetadata()
+    }
+
+    fun observeAllRoutesWithPhotoMetadata() {
+        viewModelScope.launch {
+            observeAllRoutesWithPhotoMetadataUseCase()
+                .collect { routesWithPhotoMetadata ->
+                    state.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            routesWithPhotoMetadata = routesWithPhotoMetadata.toUiState()
+                        )
+                    }
+                }
+        }
+    }
+
+    fun onRenameRouteClick(routeId: RouteId) {
+        state.update { state ->
+            state.copy(
+                routeToRename = routeId,
+                routeNameInput = state.routesWithPhotoMetadata
+                    .find { it.routeId == routeId }
+                    ?.displayName ?: ""
+            )
+        }
+    }
+
+    fun onRouteNameChange(newRouteName: String) {
+        state.update { state -> state.copy(routeNameInput = newRouteName) }
+    }
+
+    fun onConfirmNameRouteDialogClick() {
+        val routeId = state.value.routeToRename
+        val routeName = state.value.routeNameInput
+        routeId?.let {
+            viewModelScope.launch {
+                renameRouteUseCase(
+                    routeId = routeId,
+                    newDisplayName = routeName
+                )
+            }
+        }
+        onDismissNameRouteDialogClick()
+    }
+
+    fun onDismissNameRouteDialogClick() {
+        state.update { state ->
+            state.copy(
+                routeToRename = null,
+                routeNameInput = ""
+            )
+        }
+    }
 
     fun onDeleteRouteClick(routeId: RouteId) {
-        routeIdToDelete.update { routeId }
+        state.update { state ->
+            state.copy(routeIdToDelete = routeId)
+        }
     }
 
     fun onConfirmDeleteRouteClick() {
-        val routeId = routeIdToDelete.value ?: return
+        val routeId = state.value.routeIdToDelete ?: return
         viewModelScope.launch {
             deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
-            routeIdToDelete.update { null }
-            showSnackbarRouteDeletedConfirmation.update { true }
+            state.update { state ->
+                state.copy(
+                    routeIdToDelete = null,
+                    showSnackbarRouteDeletedConfirmation = true
+                )
+            }
         }
     }
 
     fun onHideSnackbarRouteDeletedConfirmation() {
-        showSnackbarRouteDeletedConfirmation.update { false }
+        state.update { state ->
+            state.copy(showSnackbarRouteDeletedConfirmation = false)
+        }
     }
 
     fun onDismissDeleteRouteDialogClick() {
-        routeIdToDelete.update { null }
+        state.update { state ->
+            state.copy(
+                routeIdToDelete = null
+            )
+        }
     }
 
     data class State(
         val isLoading: Boolean = true,
-        val showDeletePastRouteDialog: Boolean = false,
-        val routeIdToDelete: RouteId? = null,
         val routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState> = persistentListOf(),
-        val showSnackbarRouteDeletedConfirmation: Boolean = false,
-    )
+        val routeToRename: RouteId? = null,
+        val routeNameInput: String = "",
+        val routeIdToDelete: RouteId? = null,
+        val showSnackbarRouteDeletedConfirmation: Boolean = false
+    ) {
+
+        val showRenameRouteDialog: Boolean
+            get() = routeToRename != null
+
+        val showDeletePastRouteDialog: Boolean
+            get() = routeIdToDelete != null
+    }
 }
