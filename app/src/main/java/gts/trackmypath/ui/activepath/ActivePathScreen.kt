@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.LocalAsyncImagePreviewHandler
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
@@ -161,7 +162,9 @@ private fun ActivePathContent(
             sheetState = sheetState,
             placeFilters = PlaceFilter.entries.toList().toPersistentList(),
             selectedPlaceFilters = state.selectedPlaceFilters,
-            onPlaceFilterSelect = { onAction(ActivePathViewModel.Action.OonPlaceFilterSelect(placeFilter = it)) },
+            onPlaceFilterSelect = {
+                onAction(ActivePathViewModel.Action.OonPlaceFilterSelect(placeFilter = it))
+            },
             onResetPlaceFiltersClick = { onAction(ActivePathViewModel.Action.OnResetPlaceFiltersClick) },
             onDismissRequest = { onAction(ActivePathViewModel.Action.OnDismissPlaceFilterBottomSheet) }
         )
@@ -171,77 +174,18 @@ private fun ActivePathContent(
         // https://developer.android.com/develop/ui/compose/testing/interoperability
         modifier = modifier.semantics { testTagsAsResourceId = true },
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(text = "track my path")
-                },
-                actions = {
-                    IconButton(onClick = { onAction(ActivePathViewModel.Action.OnPlaceFiltersClick) }) {
-                        Icon(
-                            painter = painterResource(R.drawable.place_filter_icon),
-                            contentDescription = "Filter places"
-                        )
-                    }
-                    IconButton(onClick = onNavigateToPastRoutes) {
-                        Icon(
-                            painter = painterResource(R.drawable.routes_icon),
-                            contentDescription = "Past Routes"
-                        )
-                    }
-                }
+            ActivePathTopAppBar(
+                onAction = onAction,
+                onNavigateToPastRoutes = onNavigateToPastRoutes
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                modifier = Modifier.testTag("start_tracking_fab"),
-                onClick = {
-                    val isFineGranted = locationPermissionsState.permissions.any {
-                        it.permission == ACCESS_FINE_LOCATION && it.status.isGranted
-                    }
-                    val isCoarseGranted = locationPermissionsState.permissions.any {
-                        it.permission == ACCESS_COARSE_LOCATION && it.status.isGranted
-                    }
-
-                    when {
-                        isFineGranted -> {
-                            if (state.isTracking) {
-                                onAction(ActivePathViewModel.Action.OnStopTrackPathClick)
-                            } else {
-                                onAction(ActivePathViewModel.Action.OnStartTrackPathClick)
-                            }
-                        }
-
-                        isCoarseGranted -> {
-                            // They have coarse. Show dialog to upgrade to fine.
-                            locationPermissionDialogType = LocationPermissionDialogType.UPGRADE_TO_FINE
-                        }
-
-                        else -> {
-                            // No permissions granted yet.
-                            if (locationPermissionsState.shouldShowRationale) {
-                                locationPermissionDialogType = LocationPermissionDialogType.REQUIRE_ALL
-                            } else {
-                                locationPermissionsState.launchMultiplePermissionRequest()
-                            }
-                        }
-                    }
-                },
-            ) {
-                val icon = if (state.isTracking) {
-                    painterResource(R.drawable.stop_icon)
-                } else {
-                    painterResource(R.drawable.play_arrow_icon)
-                }
-                val contentDescription = if (state.isTracking) {
-                    "Stop path tracking"
-                } else {
-                    "Start path tracking"
-                }
-                Icon(
-                    painter = icon,
-                    contentDescription = contentDescription,
-                )
-            }
+            TrackFloatingActionButton(
+                isTracking = state.isTracking,
+                locationPermissionsState = locationPermissionsState,
+                onPermissionRequest = { locationPermissionDialogType = it },
+                onAction = onAction
+            )
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -261,6 +205,92 @@ private fun ActivePathContent(
                 .padding(innerPadding)
                 .padding(horizontal = 24.dp),
             photos = state.photos
+        )
+    }
+}
+
+@Composable
+private fun ActivePathTopAppBar(
+    onAction: (ActivePathViewModel.Action) -> Unit,
+    onNavigateToPastRoutes: () -> Unit
+) {
+    CenterAlignedTopAppBar(
+        title = {
+            Text(text = "track my path")
+        },
+        actions = {
+            IconButton(onClick = { onAction(ActivePathViewModel.Action.OnPlaceFiltersClick) }) {
+                Icon(
+                    painter = painterResource(R.drawable.place_filter_icon),
+                    contentDescription = "Filter places"
+                )
+            }
+            IconButton(onClick = onNavigateToPastRoutes) {
+                Icon(
+                    painter = painterResource(R.drawable.routes_icon),
+                    contentDescription = "Past Routes"
+                )
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+private fun TrackFloatingActionButton(
+    isTracking: Boolean,
+    locationPermissionsState: MultiplePermissionsState,
+    onPermissionRequest: (LocationPermissionDialogType) -> Unit,
+    onAction: (ActivePathViewModel.Action) -> Unit
+) {
+    FloatingActionButton(
+        modifier = Modifier.testTag("start_tracking_fab"),
+        onClick = {
+            val isFineGranted = locationPermissionsState.permissions.any {
+                it.permission == ACCESS_FINE_LOCATION && it.status.isGranted
+            }
+            val isCoarseGranted = locationPermissionsState.permissions.any {
+                it.permission == ACCESS_COARSE_LOCATION && it.status.isGranted
+            }
+
+            when {
+                isFineGranted -> {
+                    if (isTracking) {
+                        onAction(ActivePathViewModel.Action.OnStopTrackPathClick)
+                    } else {
+                        onAction(ActivePathViewModel.Action.OnStartTrackPathClick)
+                    }
+                }
+
+                isCoarseGranted -> {
+                    // They have coarse. Show dialog to upgrade to fine.
+                    onPermissionRequest(LocationPermissionDialogType.UPGRADE_TO_FINE)
+                }
+
+                else -> {
+                    // No permissions granted yet.
+                    if (locationPermissionsState.shouldShowRationale) {
+                        onPermissionRequest(LocationPermissionDialogType.REQUIRE_ALL)
+                    } else {
+                        locationPermissionsState.launchMultiplePermissionRequest()
+                    }
+                }
+            }
+        },
+    ) {
+        val icon = if (isTracking) {
+            painterResource(R.drawable.stop_icon)
+        } else {
+            painterResource(R.drawable.play_arrow_icon)
+        }
+        val contentDescription = if (isTracking) {
+            "Stop path tracking"
+        } else {
+            "Start path tracking"
+        }
+        Icon(
+            painter = icon,
+            contentDescription = contentDescription,
         )
     }
 }
