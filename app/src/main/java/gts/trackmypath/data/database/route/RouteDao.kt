@@ -3,7 +3,6 @@ package gts.trackmypath.data.database.route
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import kotlinx.coroutines.flow.Flow
 

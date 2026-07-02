@@ -1,4 +1,4 @@
-package gts.trackmypath.ui.activepath
+package gts.trackmypath.ui.composables
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -111,7 +111,7 @@ internal fun NameRouteDialog(
 @Composable
 private fun NameRouteDialogPreview() {
     TrackMyPathV2Theme {
-        Box (modifier = Modifier.fillMaxSize()){
+        Box(modifier = Modifier.fillMaxSize()) {
             NameRouteDialog(
                 routeName = "my route",
                 onRouteNameChange = {},

@@ -53,6 +53,7 @@ import gts.trackmypath.R
 import gts.trackmypath.domain.PlaceFilter
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
+import gts.trackmypath.ui.composables.NameRouteDialog
 import gts.trackmypath.ui.composables.PhotoCard
 import gts.trackmypath.ui.mockdata.photoMetadataMock
 import gts.trackmypath.ui.mockdata.previewHandler
