@@ -54,7 +54,7 @@ class PastRoutesViewModel @Inject constructor(
             is Action.OnDeleteRouteClick -> onDeleteRouteClick(action.routeId)
             Action.OnConfirmDeleteRouteClick -> onConfirmDeleteRouteClick()
             Action.OnDismissDeleteRouteDialogClick -> onDismissDeleteRouteDialogClick()
-            Action.HideSnackbarRouteDeletedConfirmation -> onHideSnackbarRouteDeletedConfirmation()
+            Action.HideSnackbarRouteDeletedConfirmation -> hideSnackbarRouteDeletedConfirmation()
         }
     }
 
@@ -115,7 +115,7 @@ class PastRoutesViewModel @Inject constructor(
         }
     }
 
-    private fun onHideSnackbarRouteDeletedConfirmation() {
+    private fun hideSnackbarRouteDeletedConfirmation() {
         state.update { state ->
             state.copy(showSnackbarRouteDeletedConfirmation = false)
         }
