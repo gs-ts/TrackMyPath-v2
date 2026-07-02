@@ -31,6 +31,7 @@ import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 @Composable
 internal fun NameRouteDialog(
     routeName: String,
+    isRenamingState: Boolean = false,
     onRouteNameChange: (String) -> Unit,
     onConfirmClick: () -> Unit,
     onDismissClick: () -> Unit,
@@ -53,22 +54,8 @@ internal fun NameRouteDialog(
                         .padding(top = 32.dp)
                         .padding(bottom = 16.dp),
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 10.dp)
-                ) {
-                    Icon(
-                        modifier = Modifier.size(16.dp),
-                        painter = painterResource(R.drawable.warning_icon),
-                        tint = MaterialTheme.colorScheme.outline,
-                        contentDescription = "warning"
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        style = MaterialTheme.typography.labelMedium,
-                        text = "Dismiss will not save your route.",
-                        color = MaterialTheme.colorScheme.outline
-                    )
+                if (isRenamingState.not()) {
+                    SaveRouteWarning()
                 }
                 OutlinedTextField(
                     modifier = Modifier
@@ -104,6 +91,27 @@ internal fun NameRouteDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SaveRouteWarning() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(bottom = 10.dp)
+    ) {
+        Icon(
+            modifier = Modifier.size(16.dp),
+            painter = painterResource(R.drawable.warning_icon),
+            tint = MaterialTheme.colorScheme.outline,
+            contentDescription = "warning"
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            style = MaterialTheme.typography.labelMedium,
+            text = "Dismiss will not save your route.",
+            color = MaterialTheme.colorScheme.outline
+        )
     }
 }
 
