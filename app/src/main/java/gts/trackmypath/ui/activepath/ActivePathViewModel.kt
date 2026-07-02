@@ -46,6 +46,21 @@ class ActivePathViewModel @Inject constructor(
         observeLocationServiceEvents()
     }
 
+    fun onAction(action: Action) {
+        when (action) {
+            Action.OnStartTrackPathClick -> onStartTrackPathClick()
+            Action.OnStopTrackPathClick -> onStopTrackPathClick()
+            Action.OnPlaceFiltersClick -> onPlaceFilterClick()
+            is Action.OonPlaceFilterSelect -> onPlaceFilterSelect(action.placeFilter)
+            Action.OnResetPlaceFiltersClick -> onResetPlaceFiltersClick()
+            Action.OnDismissPlaceFilterBottomSheet -> onDismissPlaceFilterBottomSheet()
+            is Action.OnRouteNameChange -> onRouteNameChange(action.routeName)
+            Action.OnConfirmNameRouteDialogClick -> onConfirmNameRouteDialogClick()
+            Action.OnDismissNameRouteDialogClick -> onDismissNameRouteDialogClick()
+            Action.HideSnackbarRouteSavedConfirmation -> hideSnackbarRouteSavedConfirmation()
+        }
+    }
+
     fun onStartTrackPathClick() {
         viewModelScope.launch {
             val newRouteId = startRouteUseCase()
@@ -134,7 +149,7 @@ class ActivePathViewModel @Inject constructor(
         }
     }
 
-    fun onHideSnackbarRouteSavedConfirmation() {
+    fun hideSnackbarRouteSavedConfirmation() {
         state.update { state ->
             state.copy(showSnackbarRouteSavedConfirmation = false)
         }
@@ -198,5 +213,27 @@ class ActivePathViewModel @Inject constructor(
 
         val isTracking: Boolean
             get() = isLocationServiceRunning && ongoingRouteId != null
+    }
+
+    sealed interface Action {
+        data object OnStartTrackPathClick : Action
+
+        data object OnStopTrackPathClick : Action
+
+        data object OnPlaceFiltersClick : Action
+
+        data class OonPlaceFilterSelect(val placeFilter: PlaceFilter) : Action
+
+        data object OnResetPlaceFiltersClick : Action
+
+        data object OnDismissPlaceFilterBottomSheet : Action
+
+        data class OnRouteNameChange(val routeName: String) : Action
+
+        data object OnConfirmNameRouteDialogClick : Action
+
+        data object OnDismissNameRouteDialogClick : Action
+
+        data object HideSnackbarRouteSavedConfirmation : Action
     }
 }

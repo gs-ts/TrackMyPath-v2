@@ -73,16 +73,7 @@ fun ActivePathScreen(
 
     ActivePathContent(
         state = state,
-        onStartTrackPathClick = viewModel::onStartTrackPathClick,
-        onStopTrackPathClick = viewModel::onStopTrackPathClick,
-        onPlaceFiltersClick = viewModel::onPlaceFilterClick,
-        onPlaceFilterSelect = viewModel::onPlaceFilterSelect,
-        onResetPlaceFiltersClick = viewModel::onResetPlaceFiltersClick,
-        onDismissPlaceFilterBottomSheet = viewModel::onDismissPlaceFilterBottomSheet,
-        onRouteNameChange = viewModel::onRouteNameChange,
-        onConfirmNameRouteDialogClick = viewModel::onConfirmNameRouteDialogClick,
-        onDismissNameRouteDialogClick = viewModel::onDismissNameRouteDialogClick,
-        onHideSnackbarRouteSavedConfirmation = viewModel::onHideSnackbarRouteSavedConfirmation,
+        onAction = viewModel::onAction,
         onNavigateToPastRoutes = onNavigateToPastRoutes
     )
 }
@@ -92,16 +83,7 @@ fun ActivePathScreen(
 private fun ActivePathContent(
     modifier: Modifier = Modifier,
     state: ActivePathViewModel.State,
-    onStartTrackPathClick: () -> Unit,
-    onStopTrackPathClick: () -> Unit,
-    onPlaceFiltersClick: () -> Unit,
-    onPlaceFilterSelect: (PlaceFilter) -> Unit,
-    onResetPlaceFiltersClick: () -> Unit,
-    onDismissPlaceFilterBottomSheet: () -> Unit,
-    onRouteNameChange: (String) -> Unit,
-    onConfirmNameRouteDialogClick: () -> Unit,
-    onDismissNameRouteDialogClick: () -> Unit,
-    onHideSnackbarRouteSavedConfirmation: () -> Unit,
+    onAction: (ActivePathViewModel.Action) -> Unit,
     onNavigateToPastRoutes: () -> Unit
 ) {
     var locationPermissionDialogType by remember { mutableStateOf(LocationPermissionDialogType.NONE) }
@@ -118,9 +100,9 @@ private fun ActivePathContent(
     ) { permissions ->
         if (permissions[ACCESS_FINE_LOCATION] == true && permissions[POST_NOTIFICATIONS] == true) {
             if (state.isTracking) {
-                onStopTrackPathClick()
+                onAction(ActivePathViewModel.Action.OnStopTrackPathClick)
             } else {
-                onStartTrackPathClick()
+                onAction(ActivePathViewModel.Action.OnStartTrackPathClick)
             }
         }
     }
@@ -142,9 +124,9 @@ private fun ActivePathContent(
     if (state.showNameRouteDialog) {
         NameRouteDialog(
             routeName = state.routeNameInput,
-            onRouteNameChange = onRouteNameChange,
-            onConfirmClick = onConfirmNameRouteDialogClick,
-            onDismissClick = onDismissNameRouteDialogClick
+            onRouteNameChange = { onAction(ActivePathViewModel.Action.OnRouteNameChange(routeName = it)) },
+            onConfirmClick = { onAction(ActivePathViewModel.Action.OnConfirmNameRouteDialogClick) },
+            onDismissClick = { onAction(ActivePathViewModel.Action.OnDismissNameRouteDialogClick) }
         )
     }
 
@@ -152,7 +134,11 @@ private fun ActivePathContent(
     // most up-to-date version of the lambda without having to restart the effect itself.
     // explanation:
     // https://mrmans0n.github.io/compose-rules/rules/#be-mindful-of-the-arguments-you-use-inside-of-a-restarting-effect
-    val hideSnackbarRouteSavedConfirmation by rememberUpdatedState(newValue = onHideSnackbarRouteSavedConfirmation)
+    val hideSnackbarRouteSavedConfirmation by rememberUpdatedState(
+        newValue = {
+            onAction(ActivePathViewModel.Action.HideSnackbarRouteSavedConfirmation)
+        }
+    )
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(key1 = state.showSnackbarRouteSavedConfirmation) {
         if (state.showSnackbarRouteSavedConfirmation) {
@@ -175,9 +161,9 @@ private fun ActivePathContent(
             sheetState = sheetState,
             placeFilters = PlaceFilter.entries.toList().toPersistentList(),
             selectedPlaceFilters = state.selectedPlaceFilters,
-            onPlaceFilterSelect = onPlaceFilterSelect,
-            onResetPlaceFiltersClick = onResetPlaceFiltersClick,
-            onDismissRequest = onDismissPlaceFilterBottomSheet
+            onPlaceFilterSelect = { onAction(ActivePathViewModel.Action.OonPlaceFilterSelect(placeFilter = it)) },
+            onResetPlaceFiltersClick = { onAction(ActivePathViewModel.Action.OnResetPlaceFiltersClick) },
+            onDismissRequest = { onAction(ActivePathViewModel.Action.OnDismissPlaceFilterBottomSheet) }
         )
     }
 
@@ -190,7 +176,7 @@ private fun ActivePathContent(
                     Text(text = "track my path")
                 },
                 actions = {
-                    IconButton(onClick = onPlaceFiltersClick) {
+                    IconButton(onClick = { onAction(ActivePathViewModel.Action.OnPlaceFiltersClick) }) {
                         Icon(
                             painter = painterResource(R.drawable.place_filter_icon),
                             contentDescription = "Filter places"
@@ -219,9 +205,9 @@ private fun ActivePathContent(
                     when {
                         isFineGranted -> {
                             if (state.isTracking) {
-                                onStopTrackPathClick()
+                                onAction(ActivePathViewModel.Action.OnStopTrackPathClick)
                             } else {
-                                onStartTrackPathClick()
+                                onAction(ActivePathViewModel.Action.OnStartTrackPathClick)
                             }
                         }
 
@@ -348,16 +334,7 @@ private fun ActivePathStartedPreview() {
                     ongoingRouteId = RouteId(1),
                     photos = photoMetadataMock
                 ),
-                onStartTrackPathClick = {},
-                onStopTrackPathClick = {},
-                onPlaceFiltersClick = {},
-                onPlaceFilterSelect = {},
-                onResetPlaceFiltersClick = {},
-                onDismissPlaceFilterBottomSheet = {},
-                onRouteNameChange = {},
-                onConfirmNameRouteDialogClick = {},
-                onDismissNameRouteDialogClick = {},
-                onHideSnackbarRouteSavedConfirmation = {},
+                onAction = {},
                 onNavigateToPastRoutes = {}
             )
         }
@@ -370,16 +347,7 @@ private fun ActivePathStoppedPreview() {
     TrackMyPathV2Theme {
         ActivePathContent(
             state = ActivePathViewModel.State(photos = persistentListOf()),
-            onStartTrackPathClick = {},
-            onStopTrackPathClick = {},
-            onPlaceFiltersClick = {},
-            onPlaceFilterSelect = {},
-            onResetPlaceFiltersClick = {},
-            onDismissPlaceFilterBottomSheet = {},
-            onRouteNameChange = {},
-            onConfirmNameRouteDialogClick = {},
-            onDismissNameRouteDialogClick = {},
-            onHideSnackbarRouteSavedConfirmation = {},
+            onAction = {},
             onNavigateToPastRoutes = {}
         )
     }
