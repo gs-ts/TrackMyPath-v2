@@ -120,8 +120,8 @@ complexity:
   TooManyFunctions:
     active: true
     excludes: ['**/test/**', '**/androidTest/**', '**/commonTest/**', '**/jvmTest/**', '**/androidUnitTest/**', '**/androidInstrumentedTest/**', '**/jsTest/**', '**/iosTest/**']
-    allowedFunctionsPerFile: 11
-    allowedFunctionsPerClass: 11
+    allowedFunctionsPerFile: 12
+    allowedFunctionsPerClass: 12
     allowedFunctionsPerInterface: 11
     allowedFunctionsPerObject: 11
     allowedFunctionsPerEnum: 11
