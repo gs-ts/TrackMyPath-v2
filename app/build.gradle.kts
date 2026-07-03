@@ -102,6 +102,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.material3.adaptive.navigation)
     implementation(libs.androidx.lifecycle.service)
+    implementation(libs.androidx.datastore.core)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.accompanist.permissions)
