@@ -1,4 +1,4 @@
-package gts.trackmypath.domain
+package gts.trackmypath.domain.filters
 
 enum class PlaceFilter(
     val types: List<String>,
@@ -9,7 +9,7 @@ enum class PlaceFilter(
             "art_gallery",
             "museum",
             "library",
-            "place_of_worship"
+//            "place_of_worship" // unsupported
         ),
         title = "Culture"
     ),
@@ -22,7 +22,7 @@ enum class PlaceFilter(
             "movie_theater",
             "night_club",
             "zoo",
-            "entertainment_complex"
+//            "entertainment_complex"
         ),
         title = "Entertainment"
     ),
@@ -34,7 +34,6 @@ enum class PlaceFilter(
             "bakery",
             "coffee_shop",
             "brewery",
-            "distillery"
         ),
         title = "Food and drinks"
     ),
