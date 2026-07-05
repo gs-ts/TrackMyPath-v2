@@ -66,6 +66,11 @@ List to PersistentList/ImmutableList, reduce P99 frame overruns and eliminate UI
 maintain Kotlin formatting standards. Additionally, Compose Rules are enforced via Detekt plugins 
 to ensure Jetpack Compose best practices (like proper State hoisting and Modifier ordering) are strictly followed.
 
+## Demo
+
+<img width="300" height="640" alt="screen-20260705-125645-1783245364792" src="https://github.com/user-attachments/assets/21caf60a-78ed-42a5-aeca-89cfc70e5896" />
+
+
 ### Useful links
 
 - **One-off events**: https://proandroiddev.com/android-one-off-events-approaches-evolution-anti-patterns-add887cd0250
