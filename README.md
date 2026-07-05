@@ -2,11 +2,11 @@
 
 This application tracks your path and creates a continuous stream of photos 📸 by fetching images based on your real-time location 📍.
 
-You can trigger the Start button ▶️ to begin tracking your journey and tap it again ⏹️ to stop. 
-
-Once finished, you can save the route by giving it a name. All of these saved journeys are easily accessible later from the Past Routes screen 🗺️.
+You can trigger the Start button to begin tracking your journey and tap it again to stop. While tracking, the app fetches a photo from the Google Places API when tracking starts and then every 50 meters based on the user's location. Once finished, you can save the route by giving it a name. All of these saved journeys are easily accessible later from the Past Routes screen 🗺️.
 
 To customize the photo stream, you can also apply specific place filters to see exactly what interests you along the way, such as Culture 🏛️, Food & Drinks ☕, Entertainment 🎢, and more!
+
+More features will follow.
 
 ## Technologies used
 - Kotlin
