@@ -6,6 +6,8 @@
 ## tl;dr
 Track your route and automatically generate a photo stream from nearby places using real-time location data. Start and stop tracking with a single tap, save your journeys for later, and revisit them anytime. Customize what gets captured along the way by applying filters like Culture 🏛️, Food & Drinks ☕, and Entertainment 🎢, even while you're tracking.
 
+Next version of the: https://github.com/gs-ts/TrackMyPath
+
 # Description
 
 This application tracks your path and creates a continuous stream of photos 📸 by fetching images based on your real-time location 📍.
