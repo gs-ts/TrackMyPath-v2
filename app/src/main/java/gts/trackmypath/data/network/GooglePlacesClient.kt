@@ -7,10 +7,13 @@ import com.google.android.libraries.places.api.model.CircularBounds
 import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.net.PlacesClient
+import com.google.android.libraries.places.api.net.PlacesStatusCodes
 import com.google.android.libraries.places.api.net.kotlin.awaitFetchResolvedPhotoUri
 import com.google.android.libraries.places.api.net.kotlin.awaitSearchNearby
 import gts.trackmypath.di.IoDispatcher
+import gts.trackmypath.domain.filters.FilterPreferencesDataStore
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.net.URI
 import java.net.URISyntaxException
@@ -25,6 +28,7 @@ interface GooglePlacesClient {
 
 class GooglePlacesClientImpl @Inject constructor(
     private val placesClient: PlacesClient,
+    private val filterPreferencesDataStore: FilterPreferencesDataStore,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : GooglePlacesClient {
 
@@ -44,15 +48,25 @@ class GooglePlacesClientImpl @Inject constructor(
             Place.Field.EDITORIAL_SUMMARY
         )
 
+        val placeFilters = filterPreferencesDataStore.placeFilters.first()
+        val includedTypes = placeFilters.flatMap { placeFilter ->
+            placeFilter.types
+        }
+
         return try {
             withContext(context = ioDispatcher) {
                 return@withContext placesClient.awaitSearchNearby(
                     locationRestriction = locationRestriction,
                     placeFields = placeFields
-                ).places
+                ) {
+                    setIncludedTypes(includedTypes)
+                }.places
             }
         } catch (apiException: ApiException) {
             Log.e("GooglePlacesClient", "Error searchNearby", apiException)
+            if (apiException.statusCode == PlacesStatusCodes.INVALID_REQUEST) {
+                // TODO check for unsupported types and remove them from filters
+            }
             emptyList()
         }
     }
