@@ -1,10 +1,13 @@
+## tl;dr
+Track your route and automatically generate a photo stream from nearby places using real-time location data. Start and stop tracking with a single tap, save your journeys for later, and revisit them anytime. Customize what gets captured along the way by applying filters like Culture 🏛️, Food & Drinks ☕, and Entertainment 🎢, even while you're tracking.
+
 # Description
 
 This application tracks your path and creates a continuous stream of photos 📸 by fetching images based on your real-time location 📍.
 
 You can trigger the Start button to begin tracking your journey and tap it again to stop. While tracking, the app fetches a photo from the Google Places API when tracking starts and then every 50 meters based on the user's location. Once finished, you can save the route by giving it a name. All of these saved journeys are easily accessible later from the Past Routes screen 🗺️.
 
-To customize the photo stream, you can also apply specific place filters to see exactly what interests you along the way, such as Culture 🏛️, Food & Drinks ☕, Entertainment 🎢, and more!
+To customize the photo stream, you can apply place filters that determine what the app fetches while tracking. For example, selecting Culture 🏛️, Food & Drinks ☕, or Entertainment 🎢 will influence the photos shown along your route. Filters can be added or removed both before and during tracking.
 
 More features will follow.
 
