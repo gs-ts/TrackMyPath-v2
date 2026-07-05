@@ -1,3 +1,8 @@
+<img width="96" height="96" alt="ic_launcher_round" src="https://github.com/user-attachments/assets/ff3acaab-612e-4311-81b2-80a67f0b32d6" /> 
+
+# Track my path
+
+
 ## tl;dr
 Track your route and automatically generate a photo stream from nearby places using real-time location data. Start and stop tracking with a single tap, save your journeys for later, and revisit them anytime. Customize what gets captured along the way by applying filters like Culture 🏛️, Food & Drinks ☕, and Entertainment 🎢, even while you're tracking.
 
