@@ -60,6 +60,12 @@ while the app dynamically fetches and prepends new photos to the list.
 It proves with actual numbers how optimizations, such as switching from standard Kotlin 
 List to PersistentList/ImmutableList, reduce P99 frame overruns and eliminate UI jank.
 
+## Continuous Integration (CI) & Static Analysis
+- **GitHub Actions**: The project enforces code quality automatically on every push to master using a dedicated android-ci.yml workflow.
+- **Static Code Analysis**: Detekt (v2) is integrated into the build pipeline to catch code smells and 
+maintain Kotlin formatting standards. Additionally, Compose Rules are enforced via Detekt plugins 
+to ensure Jetpack Compose best practices (like proper State hoisting and Modifier ordering) are strictly followed.
+
 ### Useful links
 
 - **One-off events**: https://proandroiddev.com/android-one-off-events-approaches-evolution-anti-patterns-add887cd0250
