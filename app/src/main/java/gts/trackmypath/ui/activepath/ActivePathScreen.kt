@@ -52,7 +52,6 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
-import gts.trackmypath.domain.PlaceFilter
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.composables.NameRouteDialog
@@ -62,7 +61,6 @@ import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -161,13 +159,7 @@ private fun ActivePathContent(
     if (state.showPlaceFilterBottomSheet) {
         PlaceFilterBottomSheet(
             sheetState = sheetState,
-            placeFilters = PlaceFilter.entries.toList().toPersistentList(),
-            selectedPlaceFilters = state.selectedPlaceFilters,
-            onPlaceFilterSelect = {
-                onAction(ActivePathViewModel.Action.OonPlaceFilterSelect(placeFilter = it))
-            },
-            onResetPlaceFiltersClick = { onAction(ActivePathViewModel.Action.OnResetPlaceFiltersClick) },
-            onDismissRequest = { onAction(ActivePathViewModel.Action.OnDismissPlaceFilterBottomSheet) }
+            onClose = { onAction(ActivePathViewModel.Action.OnClosePlaceFilterBottomSheet) }
         )
     }
 

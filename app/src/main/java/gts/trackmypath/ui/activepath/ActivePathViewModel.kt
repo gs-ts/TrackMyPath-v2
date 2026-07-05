@@ -4,8 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import gts.trackmypath.domain.ApplyPlaceFiltersUseCase
-import gts.trackmypath.domain.PlaceFilter
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
@@ -14,9 +12,7 @@ import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.StartRouteUseCase
 import gts.trackmypath.ui.service.LocationServiceManager
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -32,7 +28,6 @@ class ActivePathViewModel @Inject constructor(
     private val locationServiceManager: LocationServiceManager,
     private val startRouteUseCase: StartRouteUseCase,
     private val finishRouteUseCase: FinishRouteUseCase,
-    private val applyPlaceFiltersUseCase: ApplyPlaceFiltersUseCase,
     private val deleteRouteWithPhotoMetadataUseCase: DeleteRouteWithPhotoMetadataUseCase,
     private val observeRouteWithPhotoMetadataUseCase: ObserveRouteWithPhotoMetadataContract
 ) : ViewModel() {
@@ -51,9 +46,7 @@ class ActivePathViewModel @Inject constructor(
             Action.OnStartTrackPathClick -> onStartTrackPathClick()
             Action.OnStopTrackPathClick -> onStopTrackPathClick()
             Action.OnPlaceFiltersClick -> onPlaceFilterClick()
-            is Action.OonPlaceFilterSelect -> onPlaceFilterSelect(action.placeFilter)
-            Action.OnResetPlaceFiltersClick -> onResetPlaceFiltersClick()
-            Action.OnDismissPlaceFilterBottomSheet -> onDismissPlaceFilterBottomSheet()
+            Action.OnClosePlaceFilterBottomSheet -> onClosePlaceFilterBottomSheet()
             is Action.OnRouteNameChange -> onRouteNameChange(action.routeName)
             Action.OnConfirmNameRouteDialogClick -> onConfirmNameRouteDialogClick()
             Action.OnDismissNameRouteDialogClick -> onDismissNameRouteDialogClick()
@@ -84,24 +77,8 @@ class ActivePathViewModel @Inject constructor(
         }
     }
 
-    fun onPlaceFilterSelect(placeFilter: PlaceFilter) {
-        state.update { state ->
-            val newPlaceFilters = if (state.selectedPlaceFilters.contains(placeFilter)) {
-                state.selectedPlaceFilters.removing(element = placeFilter)
-            } else {
-                state.selectedPlaceFilters.adding(element = placeFilter)
-            }
-            state.copy(selectedPlaceFilters = newPlaceFilters)
-        }
-    }
-
-    fun onResetPlaceFiltersClick() {
-        state.update { state -> state.copy(selectedPlaceFilters = persistentSetOf()) }
-    }
-
-    fun onDismissPlaceFilterBottomSheet() {
+    fun onClosePlaceFilterBottomSheet() {
         state.update { state -> state.copy(showPlaceFilterBottomSheet = false) }
-        // gather the selected filters and call applyPlaceFiltersUseCase here
     }
 
     fun onRouteNameChange(newRouteName: String) {
@@ -204,7 +181,6 @@ class ActivePathViewModel @Inject constructor(
         val isLocationServiceRunning: Boolean = false,
         val ongoingRouteId: RouteId? = null,
         val photos: PersistentList<PhotoMetadata> = persistentListOf(),
-        val selectedPlaceFilters: PersistentSet<PlaceFilter> = persistentSetOf(),
         val showPlaceFilterBottomSheet: Boolean = false,
         val routeNameInput: String = "",
         val showNameRouteDialog: Boolean = false,
@@ -222,11 +198,7 @@ class ActivePathViewModel @Inject constructor(
 
         data object OnPlaceFiltersClick : Action
 
-        data class OonPlaceFilterSelect(val placeFilter: PlaceFilter) : Action
-
-        data object OnResetPlaceFiltersClick : Action
-
-        data object OnDismissPlaceFilterBottomSheet : Action
+        data object OnClosePlaceFilterBottomSheet : Action
 
         data class OnRouteNameChange(val routeName: String) : Action
 
