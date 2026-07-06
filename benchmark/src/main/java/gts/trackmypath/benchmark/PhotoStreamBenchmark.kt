@@ -54,8 +54,8 @@ import org.junit.runner.RunWith
  *
  * Focus on P99 since that's where jank lives:
  * The critical one is P99 frameOverrunMs.
- * With List, your worst 1% of frames are missing their deadline by 2.3ms, those are real dropped frames, visible jank.
- * With ImmutableList, that same P99 is -0.4ms, meaning even your worst frames are still beating the deadline.
+ * With List, the worst 1% of frames are missing their deadline by 2.3ms, those are real dropped frames, visible jank.
+ * With ImmutableList, that same P99 is -0.4ms, meaning even the worst frames are still beating the deadline.
  *
  */
 @RunWith(AndroidJUnit4::class)
