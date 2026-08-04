@@ -178,7 +178,7 @@ class ActivePathViewModel @Inject constructor(
     }
 
     data class State(
-        val isLocationServiceRunning: Boolean = false,
+        private val isLocationServiceRunning: Boolean = false,
         val ongoingRouteId: RouteId? = null,
         val photos: PersistentList<PhotoMetadata> = persistentListOf(),
         val shouldShowPlaceFilterBottomSheet: Boolean = false,
@@ -189,6 +189,9 @@ class ActivePathViewModel @Inject constructor(
 
         val isTracking: Boolean
             get() = isLocationServiceRunning && ongoingRouteId != null
+
+        val isStreamLoading: Boolean
+            get() = isTracking && photos.isEmpty()
     }
 
     sealed interface Action {

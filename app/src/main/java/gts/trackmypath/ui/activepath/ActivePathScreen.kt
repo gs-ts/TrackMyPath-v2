@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -184,7 +185,9 @@ private fun ActivePathContent(
             SnackbarHost(hostState = snackbarHostState)
         }
     ) { innerPadding ->
-        if (state.photos.isEmpty()) {
+        if (state.isStreamLoading) {
+            LoadingStream()
+        } else if (state.photos.isEmpty()) {
             EmptyStream(
                 modifier = Modifier
                     .fillMaxSize()
@@ -312,6 +315,17 @@ private fun EmptyStream(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun LoadingStream(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
 private fun PhotoStream(
     modifier: Modifier = Modifier,
     photos: ImmutableList<PhotoMetadata>
@@ -370,6 +384,22 @@ private fun ActivePathStoppedPreview() {
     TrackMyPathV2Theme {
         ActivePathContent(
             state = ActivePathViewModel.State(photos = persistentListOf()),
+            onAction = {},
+            onNavigateToPastRoutes = {}
+        )
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun ActivePathLoadingPreview() {
+    TrackMyPathV2Theme {
+        ActivePathContent(
+            state = ActivePathViewModel.State(
+                isLocationServiceRunning = true,
+                ongoingRouteId = RouteId(1),
+                photos = persistentListOf()
+            ),
             onAction = {},
             onNavigateToPastRoutes = {}
         )
