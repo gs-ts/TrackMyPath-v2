@@ -1,6 +1,5 @@
 package gts.trackmypath.domain.route
 
-import android.util.Log
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay

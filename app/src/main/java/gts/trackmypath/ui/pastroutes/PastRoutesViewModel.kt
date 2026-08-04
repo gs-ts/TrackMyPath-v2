@@ -64,7 +64,7 @@ class PastRoutesViewModel @Inject constructor(
                 routeToRename = routeId,
                 routeNameInput = state.routesWithPhotoMetadata
                     .find { it.routeId == routeId }
-                    ?.displayName ?: ""
+                    ?.displayName.orEmpty()
             )
         }
     }
@@ -76,7 +76,7 @@ class PastRoutesViewModel @Inject constructor(
     private fun onConfirmNameRouteDialogClick() {
         val routeId = state.value.routeToRename
         val routeName = state.value.routeNameInput
-        routeId?.let {
+        if (routeId != null) {
             viewModelScope.launch {
                 renameRouteUseCase(
                     routeId = routeId,
@@ -109,7 +109,7 @@ class PastRoutesViewModel @Inject constructor(
             state.update { state ->
                 state.copy(
                     routeIdToDelete = null,
-                    showSnackbarRouteDeletedConfirmation = true
+                    shouldShowSnackbarRouteDeletedConfirmation = true
                 )
             }
         }
@@ -117,7 +117,7 @@ class PastRoutesViewModel @Inject constructor(
 
     private fun hideSnackbarRouteDeletedConfirmation() {
         state.update { state ->
-            state.copy(showSnackbarRouteDeletedConfirmation = false)
+            state.copy(shouldShowSnackbarRouteDeletedConfirmation = false)
         }
     }
 
@@ -135,13 +135,13 @@ class PastRoutesViewModel @Inject constructor(
         val routeToRename: RouteId? = null,
         val routeNameInput: String = "",
         val routeIdToDelete: RouteId? = null,
-        val showSnackbarRouteDeletedConfirmation: Boolean = false
+        val shouldShowSnackbarRouteDeletedConfirmation: Boolean = false
     ) {
 
-        val showRenameRouteDialog: Boolean
+        val shouldShowRenameRouteDialog: Boolean
             get() = routeToRename != null
 
-        val showDeletePastRouteDialog: Boolean
+        val shouldShowDeletePastRouteDialog: Boolean
             get() = routeIdToDelete != null
     }
 

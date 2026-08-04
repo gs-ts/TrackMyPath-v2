@@ -26,6 +26,7 @@ data object PastRoutesRoute : NavKey
 @Serializable
 data class PastRouteDetailRoute(val routeId: Long) : NavKey
 
+@Suppress("NoNameShadowing")
 @Composable
 fun NavigationHost() {
     val backStack = rememberNavBackStack(ActivePathRoute)

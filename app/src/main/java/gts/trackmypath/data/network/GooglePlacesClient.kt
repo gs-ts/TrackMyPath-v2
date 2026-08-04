@@ -18,6 +18,7 @@ import kotlinx.coroutines.withContext
 import java.net.URI
 import java.net.URISyntaxException
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 interface GooglePlacesClient {
 
@@ -88,6 +89,8 @@ class GooglePlacesClientImpl @Inject constructor(
         } catch (uriSyntaxException: URISyntaxException) {
             Log.e("GooglePlacesClient", "Uri syntax error", uriSyntaxException)
             null
+        } catch (cancellationException: CancellationException) {
+            throw cancellationException
         } catch (exception: Exception) {
             Log.e("GooglePlacesClient", "Other error", exception)
             null

@@ -59,7 +59,7 @@ class ActivePathViewModelTest {
         viewModel.onStopTrackPathClick()
 
         assertTrue(actual = fakeLocationService.stopTrackingCalled)
-        assertTrue(actual = viewModel.state.value.showNameRouteDialog)
+        assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
     }
 
     @Test
@@ -88,10 +88,10 @@ class ActivePathViewModelTest {
         // Verify state is cleared
         val state = viewModel.state.value
         assertNull(actual = state.ongoingRouteId)
-        assertFalse(actual = state.showNameRouteDialog)
+        assertFalse(actual = state.shouldShowNameRouteDialog)
         assertEquals(expected = "", actual = state.routeNameInput)
         assertEquals(expected = persistentListOf<Any>(), actual = state.photos)
-        assertTrue(actual = state.showSnackbarRouteSavedConfirmation)
+        assertTrue(actual = state.shouldShowSnackbarRouteSavedConfirmation)
     }
 
     @Test
@@ -103,12 +103,12 @@ class ActivePathViewModelTest {
         viewModel.onConfirmNameRouteDialogClick()
 
         // check to ensure it is actually true before we hide it
-        assertTrue(actual = viewModel.state.value.showSnackbarRouteSavedConfirmation)
+        assertTrue(actual = viewModel.state.value.shouldShowSnackbarRouteSavedConfirmation)
 
         // call the hide function
         viewModel.hideSnackbarRouteSavedConfirmation()
 
-        assertFalse(actual = viewModel.state.value.showSnackbarRouteSavedConfirmation)
+        assertFalse(actual = viewModel.state.value.shouldShowSnackbarRouteSavedConfirmation)
     }
 
     @Test
@@ -126,7 +126,7 @@ class ActivePathViewModelTest {
         // Verify state is cleared
         val state = viewModel.state.value
         assertNull(actual = state.ongoingRouteId)
-        assertFalse(actual = state.showNameRouteDialog)
+        assertFalse(actual = state.shouldShowNameRouteDialog)
         assertEquals(expected = "", actual = state.routeNameInput)
         assertEquals(expected = persistentListOf<Any>(), actual = state.photos)
     }
@@ -163,7 +163,7 @@ class ActivePathViewModelTest {
 
         viewModel.onPlaceFilterClick()
 
-        assertTrue(actual = viewModel.state.value.showPlaceFilterBottomSheet)
+        assertTrue(actual = viewModel.state.value.shouldShowPlaceFilterBottomSheet)
     }
 
     @Test
@@ -171,10 +171,10 @@ class ActivePathViewModelTest {
         val (viewModel, _, _) = createViewModel()
 
         viewModel.onPlaceFilterClick() // Show it first
-        assertTrue(actual = viewModel.state.value.showPlaceFilterBottomSheet)
+        assertTrue(actual = viewModel.state.value.shouldShowPlaceFilterBottomSheet)
 
         viewModel.onClosePlaceFilterBottomSheet()
-        assertFalse(actual = viewModel.state.value.showPlaceFilterBottomSheet)
+        assertFalse(actual = viewModel.state.value.shouldShowPlaceFilterBottomSheet)
     }
 
     // --- Helper classes and setup ---

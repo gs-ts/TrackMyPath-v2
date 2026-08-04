@@ -67,18 +67,18 @@ class ActivePathViewModel @Inject constructor(
     fun onStopTrackPathClick() {
         locationServiceManager.stopTracking()
         state.update { state ->
-            state.copy(showNameRouteDialog = true)
+            state.copy(shouldShowNameRouteDialog = true)
         }
     }
 
     fun onPlaceFilterClick() {
         state.update { state ->
-            state.copy(showPlaceFilterBottomSheet = true)
+            state.copy(shouldShowPlaceFilterBottomSheet = true)
         }
     }
 
     fun onClosePlaceFilterBottomSheet() {
-        state.update { state -> state.copy(showPlaceFilterBottomSheet = false) }
+        state.update { state -> state.copy(shouldShowPlaceFilterBottomSheet = false) }
     }
 
     fun onRouteNameChange(newRouteName: String) {
@@ -88,7 +88,7 @@ class ActivePathViewModel @Inject constructor(
     fun onConfirmNameRouteDialogClick() {
         val routeId = state.value.ongoingRouteId
         val routeName = state.value.routeNameInput
-        routeId?.let {
+        if (routeId != null) {
             viewModelScope.launch {
                 finishRouteUseCase(
                     routeId = routeId,
@@ -100,10 +100,10 @@ class ActivePathViewModel @Inject constructor(
         state.update { state ->
             state.copy(
                 ongoingRouteId = null,
-                showNameRouteDialog = false,
+                shouldShowNameRouteDialog = false,
                 routeNameInput = "",
                 photos = persistentListOf(), // clear the photo stream
-                showSnackbarRouteSavedConfirmation = true
+                shouldShowSnackbarRouteSavedConfirmation = true
             )
         }
     }
@@ -111,14 +111,14 @@ class ActivePathViewModel @Inject constructor(
     fun onDismissNameRouteDialogClick() {
         viewModelScope.launch {
             val routeId = state.value.ongoingRouteId
-            routeId?.let {
+            if (routeId != null) {
                 deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
             }
 
             state.update { state ->
                 state.copy(
                     ongoingRouteId = null,
-                    showNameRouteDialog = false,
+                    shouldShowNameRouteDialog = false,
                     routeNameInput = "",
                     photos = persistentListOf() // clear the photo stream
                 )
@@ -128,7 +128,7 @@ class ActivePathViewModel @Inject constructor(
 
     fun hideSnackbarRouteSavedConfirmation() {
         state.update { state ->
-            state.copy(showSnackbarRouteSavedConfirmation = false)
+            state.copy(shouldShowSnackbarRouteSavedConfirmation = false)
         }
     }
 
@@ -181,10 +181,10 @@ class ActivePathViewModel @Inject constructor(
         val isLocationServiceRunning: Boolean = false,
         val ongoingRouteId: RouteId? = null,
         val photos: PersistentList<PhotoMetadata> = persistentListOf(),
-        val showPlaceFilterBottomSheet: Boolean = false,
+        val shouldShowPlaceFilterBottomSheet: Boolean = false,
         val routeNameInput: String = "",
-        val showNameRouteDialog: Boolean = false,
-        val showSnackbarRouteSavedConfirmation: Boolean = false
+        val shouldShowNameRouteDialog: Boolean = false,
+        val shouldShowSnackbarRouteSavedConfirmation: Boolean = false
     ) {
 
         val isTracking: Boolean

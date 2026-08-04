@@ -93,7 +93,7 @@ private fun PastRoutesContent(
     onAction: (PastRoutesViewModel.Action) -> Unit,
     onBackClick: () -> Unit,
 ) {
-    if (state.showRenameRouteDialog) {
+    if (state.shouldShowRenameRouteDialog) {
         NameRouteDialog(
             routeName = state.routeNameInput,
             isRenamingState = true,
@@ -103,7 +103,7 @@ private fun PastRoutesContent(
         )
     }
 
-    if (state.showDeletePastRouteDialog) {
+    if (state.shouldShowDeletePastRouteDialog) {
         DeletePastRouteDialog(
             onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmDeleteRouteClick) },
             onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissDeleteRouteDialogClick) }
@@ -120,8 +120,8 @@ private fun PastRoutesContent(
         }
     )
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(key1 = state.showSnackbarRouteDeletedConfirmation) {
-        if (state.showSnackbarRouteDeletedConfirmation) {
+    LaunchedEffect(key1 = state.shouldShowSnackbarRouteDeletedConfirmation) {
+        if (state.shouldShowSnackbarRouteDeletedConfirmation) {
             try {
                 snackbarHostState.showSnackbar(
                     message = "Route deleted successfully.",
@@ -324,10 +324,10 @@ fun PastRouteDropdownMenu(
     routeId: RouteId,
     onClick: (PastRoutesViewModel.Action) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     Box(modifier = modifier) {
-        IconButton(onClick = { expanded = true }) {
+        IconButton(onClick = { isExpanded = true }) {
             Icon(
                 modifier = Modifier.size(20.dp),
                 painter = painterResource(R.drawable.dropdown_menu_icon),
@@ -337,22 +337,22 @@ fun PastRouteDropdownMenu(
         }
         DropdownMenu(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            expanded = expanded,
+            expanded = isExpanded,
             onDismissRequest = {
-                expanded = false
+                isExpanded = false
             }
         ) {
             DropdownMenuItem(
                 text = { Text(text = "Rename") },
                 onClick = {
-                    expanded = false
+                    isExpanded = false
                     onClick(PastRoutesViewModel.Action.OnRenameRouteClick(routeId = routeId))
                 }
             )
             DropdownMenuItem(
                 text = { Text(text = "Delete") },
                 onClick = {
-                    expanded = false
+                    isExpanded = false
                     onClick(PastRoutesViewModel.Action.OnDeleteRouteClick(routeId = routeId))
                 }
             )

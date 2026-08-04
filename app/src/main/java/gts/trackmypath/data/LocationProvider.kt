@@ -58,6 +58,7 @@ class LocationProvider @Inject constructor(
 
         Log.d("LocationProvider", "Starting location updates")
 
+        @Suppress("InjectDispatcher")
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
             Dispatchers.Default.asExecutor(), // Keep GPS callbacks completely off the main thread

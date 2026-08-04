@@ -42,12 +42,12 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
                 val placeId = place.id ?: return@firstOrNull false
                 val hasPhotos = !place.photoMetadatas.isNullOrEmpty()
 
-                val alreadyExists = photoMetadataDao.existsForRoute(
+                val isExisting = photoMetadataDao.existsForRoute(
                     routeId = routeId.id,
                     placeId = placeId
                 )
 
-                hasPhotos && !alreadyExists
+                hasPhotos && !isExisting
             }
 
             if (validPlace == null) { // second check: at least one place with photos

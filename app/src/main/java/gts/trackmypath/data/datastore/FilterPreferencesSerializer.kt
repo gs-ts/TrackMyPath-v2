@@ -3,7 +3,6 @@ package gts.trackmypath.data.datastore
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream

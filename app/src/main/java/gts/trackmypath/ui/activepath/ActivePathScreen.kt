@@ -121,7 +121,7 @@ private fun ActivePathContent(
         )
     }
 
-    if (state.showNameRouteDialog) {
+    if (state.shouldShowNameRouteDialog) {
         NameRouteDialog(
             routeName = state.routeNameInput,
             onRouteNameChange = { onAction(ActivePathViewModel.Action.OnRouteNameChange(routeName = it)) },
@@ -140,8 +140,8 @@ private fun ActivePathContent(
         }
     )
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(key1 = state.showSnackbarRouteSavedConfirmation) {
-        if (state.showSnackbarRouteSavedConfirmation) {
+    LaunchedEffect(key1 = state.shouldShowSnackbarRouteSavedConfirmation) {
+        if (state.shouldShowSnackbarRouteSavedConfirmation) {
             try {
                 snackbarHostState.showSnackbar(
                     message = "Route saved successfully.",
@@ -156,7 +156,7 @@ private fun ActivePathContent(
     }
 
     val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
-    if (state.showPlaceFilterBottomSheet) {
+    if (state.shouldShowPlaceFilterBottomSheet) {
         PlaceFilterBottomSheet(
             sheetState = sheetState,
             onClose = { onAction(ActivePathViewModel.Action.OnClosePlaceFilterBottomSheet) }
