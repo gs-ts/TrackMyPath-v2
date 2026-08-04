@@ -9,10 +9,10 @@ import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataUseCase
 
 @Module
 @InstallIn(ViewModelComponent::class)
-abstract class ObserveRouteWithPhotoMetadataModule {
+interface ObserveRouteWithPhotoMetadataModule {
 
     @Binds
-    abstract fun bindObserveRouteWithPhotoMetadataContract(
+    fun bindObserveRouteWithPhotoMetadataContract(
         impl: ObserveRouteWithPhotoMetadataUseCase
     ): ObserveRouteWithPhotoMetadataContract
 }
