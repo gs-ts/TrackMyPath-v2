@@ -1,9 +1,7 @@
 package gts.trackmypath.ui.composables
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,8 +18,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow.Companion.Ellipsis
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import coil3.annotation.ExperimentalCoilApi
+import coil3.compose.AsyncImage
 import coil3.compose.LocalAsyncImagePreviewHandler
-import coil3.compose.SubcomposeAsyncImage
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.ui.mockdata.photoMetadataMock
 import gts.trackmypath.ui.mockdata.previewHandler
@@ -47,7 +46,7 @@ fun PhotoCard(
                 .padding(top = 8.dp)
                 .padding(bottom = 16.dp)
         ) {
-            SubcomposeAsyncImage(
+            AsyncImage(
                 model = photo.photoUri,
                 contentDescription = photo.generativeSummary,
                 modifier = Modifier
@@ -55,10 +54,7 @@ fun PhotoCard(
                     .height(200.dp)
                     .padding(vertical = 4.dp)
                     .clip(shape = RoundedCornerShape(size = 8.dp)),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Box(modifier = Modifier.fillMaxSize().shimmer())
-                }
+                contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(8.dp))
             if (photo.displayName != null) {
@@ -84,6 +80,7 @@ fun PhotoCard(
 @Composable
 private fun RouteCardPreview() {
     TrackMyPathV2Theme {
+        @OptIn(ExperimentalCoilApi::class)
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             PhotoCard(
                 photo = photoMetadataMock.first()

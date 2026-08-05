@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalCoilApi::class)
-
 package gts.trackmypath.ui.pastroutes
 
 import androidx.compose.foundation.layout.Arrangement
@@ -49,14 +47,13 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.annotation.ExperimentalCoilApi
+import coil3.compose.AsyncImage
 import coil3.compose.LocalAsyncImagePreviewHandler
-import coil3.compose.SubcomposeAsyncImage
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.composables.LoadingView
 import gts.trackmypath.ui.composables.NameRouteDialog
-import gts.trackmypath.ui.composables.shimmer
 import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.mockdata.routesWithPhotoMetadataMock
 import gts.trackmypath.ui.model.RouteWithPhotoMetadataUiState
@@ -301,20 +298,13 @@ private fun PhotoPreview(
     modifier: Modifier = Modifier,
     photo: PhotoMetadata
 ) {
-    SubcomposeAsyncImage(
+    AsyncImage(
         model = photo.photoUri,
         contentDescription = photo.generativeSummary,
         modifier = modifier
             .aspectRatio(1f)
             .clip(shape = RoundedCornerShape(size = 8.dp)),
         contentScale = ContentScale.Crop,
-        loading = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .shimmer()
-            )
-        }
     )
 }
 
@@ -364,6 +354,7 @@ fun PastRouteDropdownMenu(
 @Composable
 private fun PastRoutesPreview() {
     TrackMyPathV2Theme {
+        @OptIn(ExperimentalCoilApi::class)
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             PastRoutesContent(
                 state = PastRoutesViewModel.State(routesWithPhotoMetadata = routesWithPhotoMetadataMock),
@@ -379,6 +370,7 @@ private fun PastRoutesPreview() {
 @Composable
 private fun RouteCardPreview() {
     TrackMyPathV2Theme {
+        @OptIn(ExperimentalCoilApi::class)
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             RouteCard(
                 routeWithPhotoMetadata = routesWithPhotoMetadataMock.first(),
