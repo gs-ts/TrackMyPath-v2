@@ -138,7 +138,7 @@ class ActivePathViewModelTest {
         viewModel.state.test {
             // initial state
             val initial = awaitItem()
-            assertFalse(actual = initial.isLocationServiceRunning)
+            assertFalse(actual = initial.isTracking)
             assertNull(actual = initial.ongoingRouteId)
 
             // emit running state
@@ -146,14 +146,14 @@ class ActivePathViewModelTest {
             fakeLocationService.emitTrackingState(TrackingState(isRunning = true, activeRouteId = activeRouteId))
 
             val runningState = awaitItem()
-            assertTrue(actual = runningState.isLocationServiceRunning)
+            assertTrue(actual = runningState.isTracking)
             assertEquals(expected = activeRouteId, actual = runningState.ongoingRouteId)
 
             // emit stopped state
             fakeLocationService.emitTrackingState(TrackingState(isRunning = false, activeRouteId = null))
 
             val stoppedState = awaitItem()
-            assertFalse(actual = stoppedState.isLocationServiceRunning)
+            assertFalse(actual = stoppedState.isTracking)
         }
     }
 
