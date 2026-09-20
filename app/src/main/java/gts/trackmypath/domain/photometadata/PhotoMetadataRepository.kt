@@ -8,4 +8,6 @@ interface PhotoMetadataRepository {
         routeId: RouteId,
         location: PhotoMetadata.Location
     ): Result<Unit>
+
+    suspend fun refreshAndSavePhotoUri(placeId: String, expiredPhotoUri: String): String?
 }

@@ -10,13 +10,18 @@ import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.data.repository.PhotoMetadataRepositoryImpl
 import gts.trackmypath.domain.PhotoMetadataUnavailableException
 import gts.trackmypath.domain.PlacesUnavailableException
+import gts.trackmypath.domain.PlaceIdInvalidException
 import gts.trackmypath.domain.photometadata.PhotoMetadata as DomainPhotoMetadata
 import gts.trackmypath.domain.route.RouteId
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import java.net.URI
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import com.google.android.libraries.places.api.model.PhotoMetadata as PlacesPhotoMetadata
 
@@ -148,6 +153,125 @@ class PhotoMetadataRepositoryTest {
             assertTrue(actual = result.isFailure)
             assertTrue(actual = result.exceptionOrNull() is PhotoMetadataUnavailableException)
         }
+
+    @Test
+    fun `refreshAndSavePhotoUri concurrent calls only fetch from API once`() = runTest(testDispatcher) {
+        val placeId = "place123"
+        val expiredUri = "https://example.com/expired.jpg"
+        
+        // 1. Create a fake client with a deliberate delay so coroutines pile up on the Mutex
+        val slowGoogleClient = object : GooglePlacesClientFake() {
+            override suspend fun fetchPhotoUriByPlaceId(placeId: String): URI? {
+                delay(100) // Simulate network delay
+                return super.fetchPhotoUriByPlaceId(placeId)
+            }
+        }
+        
+        photoMetadataRepository = PhotoMetadataRepositoryImpl(
+            googlePlacesClient = slowGoogleClient,
+            photoMetadataDao = photoMetadataDao,
+            ioDispatcher = testDispatcher
+        )
+        
+        photoMetadataDao.insert(
+            PhotoMetadataEntity(
+                id = 1L,
+                routeId = 1L,
+                placeId = placeId,
+                createdAt = 0L,
+                displayName = "",
+                location = PhotoMetadataEntity.Location(0.0, 0.0),
+                photoUri = expiredUri,
+                googleMapsUri = null,
+                generativeSummary = null,
+                neighborhoodSummary = null
+            )
+        )
+
+        // 2. Launch two concurrent requests
+        val deferred1 = async { photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri) }
+        val deferred2 = async { photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri) }
+        
+        val uri1 = deferred1.await()
+        val uri2 = deferred2.await()
+
+        // 3. Verify they both got the new URI, but the API was only hit once
+        assertEquals(expected = uri1, actual = uri2)
+        assertEquals(expected = 1, actual = slowGoogleClient.fetchPhotoUriByPlaceIdCount)
+    }
+
+    @Test
+    fun `refreshAndSavePhotoUri returns existing URI from DB if already refreshed by previous sequential call`() = runTest(testDispatcher) {
+        val placeId = "place123"
+        val expiredUri = "https://example.com/expired.jpg"
+        val googlePlacesClient = GooglePlacesClientFake()
+
+        photoMetadataRepository = PhotoMetadataRepositoryImpl(
+            googlePlacesClient = googlePlacesClient,
+            photoMetadataDao = photoMetadataDao,
+            ioDispatcher = testDispatcher
+        )
+
+        // 1. Initial state: DB has the expired URI
+        photoMetadataDao.insert(
+            PhotoMetadataEntity(
+                routeId = 1L, placeId = placeId, displayName = "", location = PhotoMetadataEntity.Location(0.0, 0.0),
+                photoUri = expiredUri, googleMapsUri = null, generativeSummary = null, neighborhoodSummary = null
+            )
+        )
+
+        // 2. Caller 1 realizes URI is expired and refreshes it.
+        val freshUri = photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri)
+
+        // 3. Caller 2 arrives LATE. It still has the old expiredUri because its UI hasn't recomposed yet.
+        // It calls the repository to refresh the expiredUri.
+        val lateCallerUri = photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri)
+
+        // 4. Verify both callers got the same fresh URI
+        assertEquals(expected = freshUri, actual = lateCallerUri)
+
+        // 5. Verify the API was only hit EXACTLY ONCE (Caller 2 was saved by the DB check)
+        assertEquals(expected = 1, actual = googlePlacesClient.fetchPhotoUriByPlaceIdCount)
+    }
+
+    @Test
+    fun `refreshAndSavePhotoUri deletes from DB and returns null when place ID is no longer valid`() = runTest(testDispatcher) {
+        val placeId = "invalid_place_123"
+        val expiredUri = "https://example.com/expired.jpg"
+        
+        // Client that throws the invalid place ID exception
+        val googlePlacesClient = object : GooglePlacesClientFake() {
+            override suspend fun fetchPhotoUriByPlaceId(placeId: String): URI? {
+                throw PlaceIdInvalidException("Place ID $placeId is no longer valid")
+            }
+        }
+
+        photoMetadataRepository = PhotoMetadataRepositoryImpl(
+            googlePlacesClient = googlePlacesClient,
+            photoMetadataDao = photoMetadataDao,
+            ioDispatcher = testDispatcher
+        )
+
+        // Initial state: DB has the expired URI
+        photoMetadataDao.insert(
+            PhotoMetadataEntity(
+                routeId = 1L, placeId = placeId, displayName = "", location = PhotoMetadataEntity.Location(0.0, 0.0),
+                photoUri = expiredUri, googleMapsUri = null, generativeSummary = null, neighborhoodSummary = null
+            )
+        )
+
+        // Make sure it exists first
+        assertTrue(photoMetadataDao.existsForRoute(1L, placeId))
+
+        // Call the refresh
+        val resultUri = photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri)
+
+        // Verify null is returned
+        assertNull(resultUri)
+        
+        // Verify entity was deleted from the DB
+        assertTrue(!photoMetadataDao.existsForRoute(1L, placeId))
+    }
 }
 
 internal class PhotoMetadataDaoFake : PhotoMetadataDao {
@@ -165,9 +289,27 @@ internal class PhotoMetadataDaoFake : PhotoMetadataDao {
     override suspend fun deleteAll() {
         savedPhotos.clear()
     }
+
+    override suspend fun getPhotoUriByPlaceId(placeId: String): String? {
+        return savedPhotos.find { it.placeId == placeId }?.photoUri
+    }
+
+    override suspend fun updatePhotoUri(placeId: String, newUri: String) {
+        val index = savedPhotos.indexOfFirst { it.placeId == placeId }
+        if (index != -1) {
+            val oldEntity = savedPhotos[index]
+            savedPhotos[index] = oldEntity.copy(photoUri = newUri)
+        }
+    }
+
+    override suspend fun deleteByPlaceId(placeId: String) {
+        savedPhotos.removeAll { it.placeId == placeId }
+    }
 }
 
-internal class GooglePlacesClientFake(private val withException: Boolean = false) : GooglePlacesClient {
+internal open class GooglePlacesClientFake(private val withException: Boolean = false) : GooglePlacesClient {
+
+    var fetchPhotoUriByPlaceIdCount = 0
 
     override suspend fun searchNearbyPlaces(latLng: LatLng): List<Place> {
         if (withException) return emptyList()
@@ -181,6 +323,12 @@ internal class GooglePlacesClientFake(private val withException: Boolean = false
 
     override suspend fun fetchPhotoUri(photoMetadatas: List<PlacesPhotoMetadata>): URI? {
         return URI(photoMetadatas.first().authorAttributions?.asList()?.first()?.photoUri)
+    }
+
+    override suspend fun fetchPhotoUriByPlaceId(placeId: String): URI? {
+        fetchPhotoUriByPlaceIdCount++
+        if (withException) return null
+        return URI("https://example.com/refreshed_photo_$placeId.jpg")
     }
 
     private fun createFakePlace(id: String, latLng: LatLng): Place {

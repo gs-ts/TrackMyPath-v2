@@ -12,6 +12,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -22,6 +26,7 @@ import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImage
 import coil3.compose.LocalAsyncImagePreviewHandler
 import gts.trackmypath.domain.photometadata.PhotoMetadata
+import gts.trackmypath.ui.mockdata.loadingPreviewHandler
 import gts.trackmypath.ui.mockdata.photoMetadataMock
 import gts.trackmypath.ui.mockdata.previewHandler
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
@@ -31,6 +36,8 @@ fun PhotoCard(
     modifier: Modifier = Modifier,
     photo: PhotoMetadata
 ) {
+    var isLoading by remember { mutableStateOf(value = true) }
+
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
@@ -47,14 +54,18 @@ fun PhotoCard(
                 .padding(bottom = 16.dp)
         ) {
             AsyncImage(
-                model = photo.photoUri,
+                model = photo,
                 contentDescription = photo.generativeSummary,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
                     .padding(vertical = 4.dp)
-                    .clip(shape = RoundedCornerShape(size = 8.dp)),
-                contentScale = ContentScale.Crop
+                    .clip(shape = RoundedCornerShape(size = 8.dp))
+                    .then(if (isLoading) Modifier.shimmer() else Modifier),
+                contentScale = ContentScale.Crop,
+                onLoading = { isLoading = true },
+                onSuccess = { isLoading = false },
+                onError = { isLoading = false }
             )
             Spacer(modifier = Modifier.height(8.dp))
             if (photo.displayName != null) {
@@ -82,6 +93,19 @@ private fun RouteCardPreview() {
     TrackMyPathV2Theme {
         @OptIn(ExperimentalCoilApi::class)
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
+            PhotoCard(
+                photo = photoMetadataMock.first()
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun PhotoCardLoadingPreview() {
+    TrackMyPathV2Theme {
+        @OptIn(ExperimentalCoilApi::class)
+        CompositionLocalProvider(LocalAsyncImagePreviewHandler provides loadingPreviewHandler) {
             PhotoCard(
                 photo = photoMetadataMock.first()
             )

@@ -299,7 +299,7 @@ private fun PhotoPreview(
     photo: PhotoMetadata
 ) {
     AsyncImage(
-        model = photo.photoUri,
+        model = photo,
         contentDescription = photo.generativeSummary,
         modifier = modifier
             .aspectRatio(1f)
