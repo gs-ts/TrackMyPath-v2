@@ -29,7 +29,7 @@ object DatabaseModule {
             "track-my-path-db"
         )
             .addCallback(CleanupUnfinishedRoutesCallback)
-            // .fallbackToDestructiveMigration() // Use only during dev if you change schema often
+//            .fallbackToDestructiveMigration(dropAllTables = true) // Use only during dev if you change schema often
             .build()
     }
 

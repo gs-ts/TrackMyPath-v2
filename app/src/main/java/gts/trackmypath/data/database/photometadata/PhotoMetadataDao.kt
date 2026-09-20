@@ -16,4 +16,13 @@ interface PhotoMetadataDao {
 
     @Query("DELETE FROM photo_metadata")
     suspend fun deleteAll()
+
+    @Query("SELECT photo_uri FROM photo_metadata WHERE place_id = :placeId LIMIT 1")
+    suspend fun getPhotoUriByPlaceId(placeId: String): String?
+
+    @Query("UPDATE photo_metadata SET photo_uri = :newUri WHERE place_id = :placeId")
+    suspend fun updatePhotoUri(placeId: String, newUri: String)
+
+    @Query("DELETE FROM photo_metadata WHERE place_id = :placeId")
+    suspend fun deleteByPlaceId(placeId: String)
 }

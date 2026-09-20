@@ -50,7 +50,7 @@ private class ShimmerNode : Modifier.Node(), DrawModifierNode {
             animatable.animateTo(
                 targetValue = 2000f,
                 animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 1200, easing = LinearEasing),
+                    animation = tween(durationMillis = 2200, easing = LinearEasing),
                     repeatMode = RepeatMode.Restart
                 )
             ) {
@@ -65,12 +65,12 @@ private class ShimmerNode : Modifier.Node(), DrawModifierNode {
 
         val brush = Brush.linearGradient(
             colors = listOf(
-                Color.LightGray.copy(alpha = 0.6f),
-                Color.LightGray.copy(alpha = 0.2f),
-                Color.LightGray.copy(alpha = 0.6f)
+                Color.LightGray.copy(alpha = 0.4f),
+                Color.LightGray.copy(alpha = 0.75f),
+                Color.LightGray.copy(alpha = 0.4f)
             ),
             start = Offset(x = translateAnim, y = 0f),
-            end = Offset(x = translateAnim + 400f, y = 0f)
+            end = Offset(x = translateAnim + 1000f, y = 0f)
         )
 
         // draw the background color first
