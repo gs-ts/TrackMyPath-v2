@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.LocalAsyncImagePreviewHandler
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -221,7 +222,7 @@ private fun ActivePathTopAppBar(
                     contentDescription = "Filter places"
                 )
             }
-            IconButton(onClick = onNavigateToPastRoutes) {
+            IconButton(onClick = dropUnlessResumed { onNavigateToPastRoutes() }) {
                 Icon(
                     painter = painterResource(R.drawable.routes_icon),
                     contentDescription = "Past Routes"

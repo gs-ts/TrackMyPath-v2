@@ -33,7 +33,11 @@ fun NavigationHost() {
 
     NavDisplay(
         backStack = backStack,
-        onBack = { backStack.removeLastOrNull() },
+        onBack = {
+            if (backStack.size > 1) {
+                backStack.removeLastOrNull()
+            }
+        },
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
@@ -61,11 +65,12 @@ fun NavigationHost() {
             @Suppress("ViewModelInjection")
             // based on https://developer.android.com/guide/navigation/navigation-3/recipes/passingarguments
             entry<PastRouteDetailRoute> { navKey ->
-                val viewModel = hiltViewModel<PastRouteDetailViewModel, PastRouteDetailViewModel.Factory>(
-                    creationCallback = { factory ->
-                        factory.create(navKey = navKey)
-                    }
-                )
+                val viewModel =
+                    hiltViewModel<PastRouteDetailViewModel, PastRouteDetailViewModel.Factory>(
+                        creationCallback = { factory ->
+                            factory.create(navKey = navKey)
+                        }
+                    )
                 PastRouteDetailScreen(
                     viewModel = viewModel,
                     onBackClick = {

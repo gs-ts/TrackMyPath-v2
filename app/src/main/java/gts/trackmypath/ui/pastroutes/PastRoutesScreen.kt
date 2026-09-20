@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.dropUnlessResumed
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.AsyncImage
 import coil3.compose.LocalAsyncImagePreviewHandler
@@ -238,7 +239,7 @@ private fun RouteCard(
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        onClick = { onRouteCardClick(routeWithPhotoMetadata.routeId) }
+        onClick = dropUnlessResumed { onRouteCardClick(routeWithPhotoMetadata.routeId) }
     ) {
         Column(
             modifier = Modifier
