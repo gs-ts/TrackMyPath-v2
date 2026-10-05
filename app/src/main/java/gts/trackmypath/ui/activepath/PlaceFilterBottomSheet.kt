@@ -19,7 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -51,7 +51,7 @@ fun PlaceFilterBottomSheet(
         val state by viewModel.state.collectAsStateWithLifecycle()
         val placeFilters = PlaceFilter.entries.toList().toPersistentList()
 
-        LaunchedEffect(state.isBottomSheetDismissed) {
+        SideEffect(state.isBottomSheetDismissed) {
             if (state.isBottomSheetDismissed) {
                 currentOnClose()
             }

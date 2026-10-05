@@ -30,6 +30,7 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,7 +65,6 @@ import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun ActivePathScreen(
     viewModel: ActivePathViewModel,
@@ -91,7 +91,7 @@ private fun ActivePathContent(
     var locationPermissionDialogType by remember { mutableStateOf(LocationPermissionDialogType.NONE) }
 
     val postNotificationPermission = rememberPermissionState(permission = POST_NOTIFICATIONS)
-    LaunchedEffect(key1 = true) {
+    SideEffect(key1 = true) {
         if (!postNotificationPermission.status.isGranted) {
             postNotificationPermission.launchPermissionRequest()
         }
