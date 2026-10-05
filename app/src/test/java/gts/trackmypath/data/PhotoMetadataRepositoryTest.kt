@@ -215,22 +215,28 @@ class PhotoMetadataRepositoryTest {
         // 1. Initial state: DB has the expired URI
         photoMetadataDao.insert(
             PhotoMetadataEntity(
-                routeId = 1L, placeId = placeId, displayName = "", location = PhotoMetadataEntity.Location(0.0, 0.0),
-                photoUri = expiredUri, googleMapsUri = null, generativeSummary = null, neighborhoodSummary = null
+                routeId = 1L,
+                placeId = placeId,
+                displayName = "",
+                location = PhotoMetadataEntity.Location(0.0, 0.0),
+                photoUri = expiredUri,
+                googleMapsUri = null,
+                generativeSummary = null,
+                neighborhoodSummary = null
             )
         )
 
         // 2. Caller 1 realizes URI is expired and refreshes it.
         val freshUri = photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri)
 
-        // 3. Caller 2 arrives LATE. It still has the old expiredUri because its UI hasn't recomposed yet.
-        // It calls the repository to refresh the expiredUri.
+        // 3. Caller 2 arrives LATE. It calls the repository to refresh the expiredUri.
+        // The repository should check its recentRefreshes cache and skip the network call.
         val lateCallerUri = photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri)
 
         // 4. Verify both callers got the same fresh URI
         assertEquals(expected = freshUri, actual = lateCallerUri)
 
-        // 5. Verify the API was only hit EXACTLY ONCE (Caller 2 was saved by the DB check)
+        // 5. Verify the API was only hit EXACTLY ONCE (Caller 2 was saved by the recentRefreshes time cache)
         assertEquals(expected = 1, actual = googlePlacesClient.fetchPhotoUriByPlaceIdCount)
     }
 

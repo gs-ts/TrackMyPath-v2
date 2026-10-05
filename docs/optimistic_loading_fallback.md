@@ -42,9 +42,9 @@ To mitigate this, we implemented the **Optimistic Load with Fallback** pattern u
    }
    ```
 
-4. **Synchronized Refresh**: The repository uses an "In-Flight Request" map combined with a database check to solve two race conditions:
-   - **Concurrent Calls**: If 10 list items fail simultaneously for the same Place, they are all routed to wait for a single active network call. Only *one* request goes to Google.
-   - **Late Arrivals**: If a UI component requests a refresh *after* the first network call has already finished, the repository checks the database first. It sees that the database no longer contains the expired URL, realizes it was already updated by the previous call, and instantly returns the new URL without hitting the network.
+4. **Synchronized Refresh**: The repository uses an "In-Flight Request" map combined with a time-based memory cache to solve two race conditions:
+   - **Concurrent Calls**: If 10 list items fail simultaneously for the same Place, they are all routed to wait for a single active network call via the `activePhotoUriFetches` map. Only *one* request goes to Google.
+   - **Late Arrivals**: If a UI component fails to load an image a split-second *after* a refresh has already completed (due to stale UI state), the repository checks an in-memory `recentRefreshes` cache. If the image was successfully refreshed very recently (e.g., within the last 10 seconds), the repository completely skips the network call and instantly returns the URL stored in the local Room DB.
 
 5. **Obsolete Place ID Cleanup**: If Google Places API returns `9013 NOT_FOUND` when attempting to refresh the URL (because the Place ID is no longer valid), `GooglePlacesClient` throws a `PlaceIdInvalidException`. The repository catches this, deletes the obsolete photo record from the Room database, and returns `null`. This breaks the infinite refresh loop and keeps the database clean.
 
@@ -54,10 +54,9 @@ To mitigate this, we implemented the **Optimistic Load with Fallback** pattern u
 - **Thread Safety & No Memory Leaks**: The In-Flight Request map completely removes duplicate network calls. When the network call finishes, it is immediately removed from the map, ensuring the app consumes zero memory for locks when idle.
 - **Automatic Self-Cleaning Database**: Obsolete Place IDs are automatically purged when Google rejects them, preventing repetitive failed network requests.
 
-
 ## Late Arrival Scenario Example
 
-This scenario explains how the **Step 1 (Database Check)** in `refreshAndSavePhotoUri` prevents redundant network calls when multiple UI components react at slightly different times.
+This scenario explains how the **Time-Based Cache** in `refreshAndSavePhotoUri` prevents redundant network calls when multiple UI components react at slightly different times.
 
 ### The Setup
 Imagine you have a photo of the **"Eiffel Tower"** in your current route.
@@ -70,37 +69,36 @@ Imagine you have a photo of the **"Eiffel Tower"** in your current route.
 You open your **Route History** list. A small thumbnail of the Eiffel Tower tries to load `URL_OLD`.
 
 1.  **Failure:** The load fails with an `HTTP 403 Forbidden`.
-2.  **Request:** The UI calls `refreshAndSavePhotoUri(placeId = "EiffelTower", expiredPhotoUri = "URL_OLD")`.
-3.  **Action:** The repository starts a network call to Google, gets `URL_NEW`, and **saves `URL_NEW` to the database.**
-4.  **Cleanup:** The "Sign-up Sheet" (`activePhotoUriFetches`) is cleared because the job is done.
+2.  **Request:** The UI calls `refreshAndSavePhotoUri(placeId = "EiffelTower", ...)`.
+3.  **Action:** The repository starts a network call to Google, gets `URL_NEW`, and saves `URL_NEW` to the database.
+4.  **Logging the Time:** The repository records exactly when this succeeded: `recentRefreshes["EiffelTower"] = System.currentTimeMillis()`.
+5.  **Cleanup:** The "In-Flight" map (`activePhotoUriFetches`) is cleared.
 
 ### Step 2: The "Late Arrival" (Second Failure)
 Imagine you also have a **Detail View** open for that same route in the background, or you scroll very fast back to that same item.
 
 1.  **Cached Memory:** The Detail View still has `URL_OLD` in its memory from the last time it was drawn. It tries to load it a split-second **after** the first request (the thumbnail) already finished.
-2.  **Failure:** It fails and calls `refreshAndSavePhotoUri(placeId = "EiffelTower", expiredPhotoUri = "URL_OLD")`.
+2.  **Failure:** It fails and calls `refreshAndSavePhotoUri(placeId = "EiffelTower", ...)`.
 3.  **The "Late Arrival" Logic:**
-   *   The Repository looks at the Database and sees `URL_NEW`.
-   *   It looks at the request and sees the UI is providing `expiredPhotoUri = "URL_OLD"`.
-   *   **The Check:** `currentPhotoUriInDb ("URL_NEW") != expiredPhotoUri ("URL_OLD")`.
+   *   The Repository checks the `recentRefreshes` cache.
+   *   It sees that `"EiffelTower"` was just successfully refreshed a few milliseconds ago.
+   *   **The Check:** `System.currentTimeMillis() - lastRefreshTime < REFRESH_DEBOUNCE_WINDOW_MS` (e.g. 10 seconds).
 
 > [!NOTE]
-> The Repository realizes: *"I already fixed this for someone else a second ago; here is the new version, don't bother Google again."*
+> The Repository realizes: *"I already fixed this for someone else 500 milliseconds ago. It is impossible for the URL to be expired again. Don't bother Google, just give them the URL from the DB."*
 
 ---
 
 ### The Result
 Instead of calling Google's API a second time, the repository immediately returns `URL_NEW` from the Database.
 
-#### Why this is a "Race Condition"
-Without the Database check, this is what would happen:
-1.  Thumbnail refreshes the URL.
-2.  Detail View doesn't know the Thumbnail just finished.
-3.  Detail View starts **another** expensive API call to Google.
-4.  You just wasted your API quota on two identical requests.
+#### Why this is better than comparing URL strings
+Previously, we tried to detect late arrivals by comparing the old URL string with the new URL string in the DB. However, Coil's disk cache and Jetpack Compose's recomposition system can sometimes pass slightly out-of-sync string references, causing the repository to falsely block legitimate refreshes. 
+
+By tracking **Time** instead of **Strings**, we created a bulletproof debounce mechanism that guarantees zero redundant API calls and zero false-positive blocks.
 
 > [!TIP]
-> **Summary:** The "Late Arrival" check ensures that if one coroutine finishes a refresh, all other coroutines that arrive even a millisecond late are immediately satisfied by the database result without hitting the network.
+> **Summary:** The `recentRefreshes` time-based cache ensures that if one coroutine finishes a refresh, all other coroutines that arrive even a millisecond late (up to 10 seconds) are immediately satisfied by the database result without hitting the network.
 
 
 ## Obsolete Place ID Scenario Example

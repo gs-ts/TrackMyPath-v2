@@ -22,6 +22,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
+private const val REFRESH_DEBOUNCE_WINDOW_MS = 10_000L
+
 class PhotoMetadataRepositoryImpl @Inject constructor(
     private val googlePlacesClient: GooglePlacesClient,
     private val photoMetadataDao: PhotoMetadataDao,
@@ -32,6 +34,10 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
 
     // Stores the active network tasks. Empty when no network calls are happening!
     private val activePhotoUriFetches = mutableMapOf<String, Deferred<String?>>()
+
+    // Stores the timestamp (System.currentTimeMillis()) of the last successful refresh for a placeId.
+    // This solves the "Late Arrival" race condition without relying on brittle URL string matching.
+    private val recentRefreshes = mutableMapOf<String, Long>()
 
     override suspend fun fetchPhotoMetadataForLocation(
         routeId: RouteId,
@@ -115,9 +121,10 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
      *    **Result:** This ensures that no matter how many times the same image is requested simultaneously,
      *    the Google Places API is only hit **exactly once**.
      *
-     * 2. **Late Arrivals:** If a second image fails slightly *after* the first one finishes (and
-     *    the In-Flight map is empty again), checking if the DB's URI still matches the [expiredPhotoUri]
-     *    lets us realize the DB was already updated by the first caller, saving another API call.
+     * 2. **Late Arrivals:** If a UI component fails to load an image a split-second *after* a refresh
+     *    has already completed (due to stale UI state), we check an in-memory `recentRefreshes` cache.
+     *    If the image was refreshed very recently (e.g., within the last 10 seconds), we skip the
+     *    network call and return the newly saved URI from the database.
      *
      * 3. **Obsolete Place IDs:** Place IDs can become invalid over time (e.g. business closed). If the
      *    Places API returns a `NOT_FOUND` error, a [PlaceIdInvalidException] is thrown. The repository
@@ -130,11 +137,23 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
         expiredPhotoUri: String
     ): String? = coroutineScope {
         Log.d("PhotoMetadataRepository", "refreshAndSavePhotoUri for placeId = $placeId")
-        // 1. Check DB first (Solves the Late Arrival race condition)
-        val currentPhotoUriInDb = photoMetadataDao.getPhotoUriByPlaceId(placeId = placeId)
-        if (currentPhotoUriInDb != null && currentPhotoUriInDb != expiredPhotoUri) {
-            Log.d("PhotoMetadataRepository", "refreshAndSavePhotoUri placeId is already in DB - late arrival scenario")
-            return@coroutineScope currentPhotoUriInDb
+
+        val currentTime = System.currentTimeMillis()
+
+        // 1. Late Arrival Check (Debounce mechanism)
+        // If we successfully refreshed this exact placeId in the last 10 seconds, this is almost
+        // certainly a late arrival from a UI component holding stale state.
+        // We skip the API call and return what is in the database.
+        // Lazy cleanup of old entries to prevent memory leaks over long app sessions.
+        // Wrapped in Mutex because we are modifying a shared mutable map concurrently.
+        mapMutex.withLock {
+            recentRefreshes.entries.removeAll { currentTime - it.value >= REFRESH_DEBOUNCE_WINDOW_MS }
+        }
+
+        val lastRefreshTime = mapMutex.withLock { recentRefreshes[placeId] } ?: 0L
+        if (currentTime - lastRefreshTime < REFRESH_DEBOUNCE_WINDOW_MS) {
+            Log.d("PhotoMetadataRepository", "refreshAndSavePhotoUri skipping API call, recently refreshed: $placeId")
+            return@coroutineScope photoMetadataDao.getPhotoUriByPlaceId(placeId)
         }
 
         // 2. Get the existing network request, or start a new one (Solves the Concurrent Call race condition)
@@ -150,7 +169,12 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
                     try {
                         val freshPhotoUri = googlePlacesClient.fetchPhotoUriByPlaceId(placeId = placeId)?.toString()
                         if (freshPhotoUri != null) {
-                            photoMetadataDao.updatePhotoUri(placeId = placeId, newUri = freshPhotoUri)
+                            photoMetadataDao.updatePhotoUri(
+                                placeId = placeId,
+                                newUri = freshPhotoUri
+                            )
+                            // We are inside a Mutex here, so it is safe to write to the map
+                            recentRefreshes[placeId] = System.currentTimeMillis()
                         }
                         freshPhotoUri
                     } catch (_: PlaceIdInvalidException) {
