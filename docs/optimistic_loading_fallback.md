@@ -44,6 +44,7 @@ To mitigate this, we implemented the **Optimistic Load with Fallback** pattern u
 
 4. **Synchronized Refresh**: The repository uses an "In-Flight Request" map combined with a time-based memory cache to solve two race conditions:
    - **Concurrent Calls**: If 10 list items fail simultaneously for the same Place, they are all routed to wait for a single active network call via the `activePhotoUriFetches` map. Only *one* request goes to Google.
+     - That shared call runs in the application-wide `@ApplicationScope`, not in the coroutine of the item that started it. Coil cancels an image request when its item scrolls off screen. If that cancelled the shared call, every other item waiting on it would fail too. Instead, cancelling an item only cancels its own wait: the others still get the fresh URL, and it is still saved to the database for the next time the image is shown.
    - **Late Arrivals**: If a UI component fails to load an image a split-second *after* a refresh has already completed (due to stale UI state), the repository checks an in-memory `recentRefreshes` cache. If the image was successfully refreshed very recently (e.g., within the last 10 seconds), the repository completely skips the network call and instantly returns the URL stored in the local Room DB.
 
 5. **Obsolete Place ID Cleanup**: If Google Places API returns `9013 NOT_FOUND` when attempting to refresh the URL (because the Place ID is no longer valid), `GooglePlacesClient` throws a `PlaceIdInvalidException`. The repository catches this, deletes the obsolete photo record from the Room database, and returns `null`. This breaks the infinite refresh loop and keeps the database clean.
@@ -51,7 +52,7 @@ To mitigate this, we implemented the **Optimistic Load with Fallback** pattern u
 ### Why We Chose It
 - **Zero Wasted API Calls**: We only hit the Google API if the image is both missing from disk *and* the local URL has expired.
 - **Zero Wasted Bandwidth**: By stabilizing the cache keys, Coil never re-downloads image bytes it already has.
-- **Thread Safety & No Memory Leaks**: The In-Flight Request map completely removes duplicate network calls. When the network call finishes, it is immediately removed from the map, ensuring the app consumes zero memory for locks when idle.
+- **Thread Safety & No Memory Leaks**: The In-Flight Request map completely removes duplicate network calls. Both maps (`activePhotoUriFetches` and `recentRefreshes`) are only read and written under one `Mutex`, which is never held during a network call. When the network call finishes, it is immediately removed from the map, ensuring the app consumes zero memory for locks when idle. The repository is a `@Singleton`, so every caller shares the same maps.
 - **Automatic Self-Cleaning Database**: Obsolete Place IDs are automatically purged when Google rejects them, preventing repetitive failed network requests.
 
 ## Late Arrival Scenario Example

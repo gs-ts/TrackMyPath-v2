@@ -15,7 +15,9 @@ import gts.trackmypath.domain.photometadata.PhotoMetadata as DomainPhotoMetadata
 import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import java.net.URI
 import kotlin.test.BeforeTest
@@ -42,7 +44,8 @@ class PhotoMetadataRepositoryTest {
             photoMetadataRepository = PhotoMetadataRepositoryImpl(
                 googlePlacesClient = googlePlacesClient,
                 photoMetadataDao = photoMetadataDao,
-                ioDispatcher = testDispatcher
+                ioDispatcher = testDispatcher,
+                applicationScope = backgroundScope
             )
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
@@ -61,7 +64,8 @@ class PhotoMetadataRepositoryTest {
             photoMetadataRepository = PhotoMetadataRepositoryImpl(
                 googlePlacesClient = googlePlacesClient,
                 photoMetadataDao = photoMetadataDao,
-                ioDispatcher = testDispatcher
+                ioDispatcher = testDispatcher,
+                applicationScope = backgroundScope
             )
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
@@ -95,7 +99,8 @@ class PhotoMetadataRepositoryTest {
             photoMetadataRepository = PhotoMetadataRepositoryImpl(
                 googlePlacesClient = googlePlacesClient,
                 photoMetadataDao = photoMetadataDao,
-                ioDispatcher = testDispatcher
+                ioDispatcher = testDispatcher,
+                applicationScope = backgroundScope
             )
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
@@ -143,7 +148,7 @@ class PhotoMetadataRepositoryTest {
 
             val googlePlacesClient: GooglePlacesClient = GooglePlacesClientFake()
             photoMetadataRepository =
-                PhotoMetadataRepositoryImpl(googlePlacesClient, photoMetadataDao, testDispatcher)
+                PhotoMetadataRepositoryImpl(googlePlacesClient, photoMetadataDao, testDispatcher, backgroundScope)
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
                 routeId = RouteId(id = 1),
@@ -159,7 +164,7 @@ class PhotoMetadataRepositoryTest {
         val placeId = "place123"
         val expiredUri = "https://example.com/expired.jpg"
         
-        // 1. Create a fake client with a deliberate delay so coroutines pile up on the Mutex
+        // 1. Create a fake client with a deliberate delay so both callers wait on the same in-flight request
         val slowGoogleClient = object : GooglePlacesClientFake() {
             override suspend fun fetchPhotoUriByPlaceId(placeId: String): URI? {
                 delay(100) // Simulate network delay
@@ -170,7 +175,8 @@ class PhotoMetadataRepositoryTest {
         photoMetadataRepository = PhotoMetadataRepositoryImpl(
             googlePlacesClient = slowGoogleClient,
             photoMetadataDao = photoMetadataDao,
-            ioDispatcher = testDispatcher
+            ioDispatcher = testDispatcher,
+            applicationScope = backgroundScope
         )
         
         photoMetadataDao.insert(
@@ -201,6 +207,52 @@ class PhotoMetadataRepositoryTest {
     }
 
     @Test
+    fun `refreshAndSavePhotoUri cancelling the first caller does not fail a concurrent caller for the same place`() = runTest(testDispatcher) {
+        val placeId = "place123"
+        val expiredUri = "https://example.com/expired.jpg"
+        val slowGoogleClient = object : GooglePlacesClientFake() {
+            override suspend fun fetchPhotoUriByPlaceId(placeId: String): URI? {
+                delay(100) // Simulate network delay
+                return super.fetchPhotoUriByPlaceId(placeId)
+            }
+        }
+
+        photoMetadataRepository = PhotoMetadataRepositoryImpl(
+            googlePlacesClient = slowGoogleClient,
+            photoMetadataDao = photoMetadataDao,
+            ioDispatcher = testDispatcher,
+            applicationScope = backgroundScope
+        )
+
+        photoMetadataDao.insert(
+            PhotoMetadataEntity(
+                routeId = 1L,
+                placeId = placeId,
+                displayName = "",
+                location = PhotoMetadataEntity.Location(0.0, 0.0),
+                photoUri = expiredUri,
+                googleMapsUri = null,
+                generativeSummary = null,
+                neighborhoodSummary = null
+            )
+        )
+
+        // 1. Two image requests for the same place fail and both wait on the same in-flight refresh
+        val firstCaller = launch { photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri) }
+        val secondCaller = async { photoMetadataRepository.refreshAndSavePhotoUri(placeId, expiredUri) }
+        runCurrent()
+
+        // 2. The first caller is cancelled mid-refresh (e.g. its list item scrolled off screen)
+        firstCaller.cancel()
+
+        // 3. The second caller still gets the fresh URI, from the single API call
+        val refreshedUri = "https://example.com/refreshed_photo_$placeId.jpg"
+        assertEquals(expected = refreshedUri, actual = secondCaller.await())
+        assertEquals(expected = 1, actual = slowGoogleClient.fetchPhotoUriByPlaceIdCount)
+        assertEquals(expected = refreshedUri, actual = photoMetadataDao.getPhotoUriByPlaceId(placeId))
+    }
+
+    @Test
     fun `refreshAndSavePhotoUri returns existing URI from DB if already refreshed by previous sequential call`() = runTest(testDispatcher) {
         val placeId = "place123"
         val expiredUri = "https://example.com/expired.jpg"
@@ -209,7 +261,8 @@ class PhotoMetadataRepositoryTest {
         photoMetadataRepository = PhotoMetadataRepositoryImpl(
             googlePlacesClient = googlePlacesClient,
             photoMetadataDao = photoMetadataDao,
-            ioDispatcher = testDispatcher
+            ioDispatcher = testDispatcher,
+            applicationScope = backgroundScope
         )
 
         // 1. Initial state: DB has the expired URI
@@ -255,7 +308,8 @@ class PhotoMetadataRepositoryTest {
         photoMetadataRepository = PhotoMetadataRepositoryImpl(
             googlePlacesClient = googlePlacesClient,
             photoMetadataDao = photoMetadataDao,
-            ioDispatcher = testDispatcher
+            ioDispatcher = testDispatcher,
+            applicationScope = backgroundScope
         )
 
         // Initial state: DB has the expired URI

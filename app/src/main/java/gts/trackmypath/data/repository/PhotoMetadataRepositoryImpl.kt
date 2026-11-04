@@ -5,6 +5,7 @@ import com.google.android.gms.maps.model.LatLng
 import gts.trackmypath.data.database.photometadata.PhotoMetadataDao
 import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.data.network.GooglePlacesClient
+import gts.trackmypath.di.ApplicationScope
 import gts.trackmypath.di.IoDispatcher
 import gts.trackmypath.domain.PhotoMetadataUnavailableException
 import gts.trackmypath.domain.PlaceIdInvalidException
@@ -13,26 +14,35 @@ import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
 import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
 private const val REFRESH_DEBOUNCE_WINDOW_MS = 10_000L
 
+/**
+ * A [Singleton] because the in-flight and recent-refresh maps below must be shared by every caller.
+ * With one instance per injection site, the de-duplication would only work by accident.
+ */
+@Singleton
 class PhotoMetadataRepositoryImpl @Inject constructor(
     private val googlePlacesClient: GooglePlacesClient,
     private val photoMetadataDao: PhotoMetadataDao,
-    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
+    @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher,
+    @param:ApplicationScope private val applicationScope: CoroutineScope
 ) : PhotoMetadataRepository {
 
+    // Guards activePhotoUriFetches and recentRefreshes. Never held during a network call.
     private val mapMutex = Mutex()
 
-    // Stores the active network tasks. Empty when no network calls are happening!
+    // Stores the in-flight photo URI refreshes, keyed by placeId. Empty when no network calls are happening!
+    // Each refresh runs in applicationScope, so no single caller owns it (see refreshAndSavePhotoUri).
     private val activePhotoUriFetches = mutableMapOf<String, Deferred<String?>>()
 
     // Stores the timestamp (System.currentTimeMillis()) of the last successful refresh for a placeId.
@@ -104,8 +114,8 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
     /**
      * Refreshes an expired Google Places photo URI and saves it to the database.
      *
-     * We use a [Mutex] (mapMutex) and an In-Flight map (activeFetches) alongside a database check
-     * to solve two race conditions and completely eliminate memory leaks:
+     * We use a [Mutex] (mapMutex), an In-Flight map (activePhotoUriFetches) and a time-based cache
+     * (recentRefreshes) to solve two race conditions and completely eliminate memory leaks:
      *
      * 1. **Concurrent Calls:** When multiple UI components (e.g., a list item and a header) or when
      *    the user returns back the same place attempt to load the **same** expired image at the
@@ -117,6 +127,11 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
      *    **Request Sharing:** If a refresh for `placeId: "EiffelTower"` is already in progress,
      *    any new requests for that same ID will not start a new network call.
      *    Instead, they "hitch a ride" on the existing task and wait for its result.
+     *
+     *    **Caller Cancellation:** The shared task runs in [applicationScope], not in the scope of the
+     *    caller that started it. Cancelling a caller (e.g. Coil cancels the request when its list
+     *    item scrolls off screen) cancels only that caller's wait. The other callers still get the
+     *    fresh URI, and it is still saved to the database for the next time the image is shown.
      *
      *    **Result:** This ensures that no matter how many times the same image is requested simultaneously,
      *    the Google Places API is only hit **exactly once**.
@@ -135,7 +150,7 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
     override suspend fun refreshAndSavePhotoUri(
         placeId: String,
         expiredPhotoUri: String
-    ): String? = coroutineScope {
+    ): String? {
         Log.d("PhotoMetadataRepository", "refreshAndSavePhotoUri for placeId = $placeId")
 
         val currentTime = System.currentTimeMillis()
@@ -153,49 +168,52 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
         val lastRefreshTime = mapMutex.withLock { recentRefreshes[placeId] } ?: 0L
         if (currentTime - lastRefreshTime < REFRESH_DEBOUNCE_WINDOW_MS) {
             Log.d("PhotoMetadataRepository", "refreshAndSavePhotoUri skipping API call, recently refreshed: $placeId")
-            return@coroutineScope photoMetadataDao.getPhotoUriByPlaceId(placeId)
+            return photoMetadataDao.getPhotoUriByPlaceId(placeId)
         }
 
         // 2. Get the existing network request, or start a new one (Solves the Concurrent Call race condition)
+        // The request runs in applicationScope, NOT in this caller's scope: if it ran in the caller's scope,
+        // cancelling the first caller would cancel the shared request and fail every caller waiting on it.
         val deferred = mapMutex.withLock {
             activePhotoUriFetches.getOrPut(key = placeId) {
                 // .getOrPut: Get when the map has already the same placeId
-                async {
-                    Log.d(
-                        "PhotoMetadataRepository",
-                        "refreshAndSavePhotoUri start photo uri refresh for placeId = $placeId"
-                    )
-                    // Start the network call
-                    try {
-                        val freshPhotoUri = googlePlacesClient.fetchPhotoUriByPlaceId(placeId = placeId)?.toString()
-                        if (freshPhotoUri != null) {
-                            photoMetadataDao.updatePhotoUri(
-                                placeId = placeId,
-                                newUri = freshPhotoUri
-                            )
-                            // We are inside a Mutex here, so it is safe to write to the map
-                            recentRefreshes[placeId] = System.currentTimeMillis()
-                        }
-                        freshPhotoUri
-                    } catch (_: PlaceIdInvalidException) {
-                        Log.w("PhotoMetadataRepository", "Place ID invalid, deleting from DB: $placeId")
-                        photoMetadataDao.deleteByPlaceId(placeId)
-                        null
-                    } finally {
-                        // IMPORTANT: Clean up the map the exact moment the API call finishes.
-                        // Wrapped in NonCancellable because withLock is a suspend function,
-                        // and this finally block might be executing during coroutine cancellation.
-                        withContext(NonCancellable) {
-                            mapMutex.withLock {
-                                activePhotoUriFetches.remove(key = placeId)
-                            }
-                        }
-                    }
-                }
+                applicationScope.async { fetchAndSavePhotoUri(placeId = placeId) }
             }
         }
 
-        // 3. Wait for the API call to finish (all concurrent callers wait for this same 'await')
-        return@coroutineScope deferred.await()
+        // 3. Wait for the API call to finish (all concurrent callers wait for this same 'await').
+        // Cancelling this caller cancels only its own wait, never the shared request.
+        return deferred.await()
+    }
+
+    private suspend fun fetchAndSavePhotoUri(placeId: String): String? {
+        Log.d("PhotoMetadataRepository", "refreshAndSavePhotoUri start photo uri refresh for placeId = $placeId")
+        return try {
+            val freshPhotoUri = googlePlacesClient.fetchPhotoUriByPlaceId(placeId = placeId)?.toString()
+            if (freshPhotoUri != null) {
+                photoMetadataDao.updatePhotoUri(
+                    placeId = placeId,
+                    newUri = freshPhotoUri
+                )
+                // This runs after the network call, outside the getOrPut lock, so it needs its own lock.
+                mapMutex.withLock {
+                    recentRefreshes[placeId] = System.currentTimeMillis()
+                }
+            }
+            freshPhotoUri
+        } catch (_: PlaceIdInvalidException) {
+            Log.w("PhotoMetadataRepository", "Place ID invalid, deleting from DB: $placeId")
+            photoMetadataDao.deleteByPlaceId(placeId)
+            null
+        } finally {
+            // IMPORTANT: Clean up the map the exact moment the API call finishes.
+            // Wrapped in NonCancellable because withLock is a suspend function,
+            // and this finally block might be executing during coroutine cancellation.
+            withContext(NonCancellable) {
+                mapMutex.withLock {
+                    activePhotoUriFetches.remove(key = placeId)
+                }
+            }
+        }
     }
 }
