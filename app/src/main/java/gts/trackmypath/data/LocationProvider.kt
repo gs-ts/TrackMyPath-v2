@@ -45,7 +45,7 @@ class LocationProvider @Inject constructor(
         TimeUnit.SECONDS.toMillis(INTERVAL_TIME.toLong()),
     )
         .setMinUpdateIntervalMillis(TimeUnit.SECONDS.toMillis(FASTEST_INTERVAL_TIME.toLong()))
-        .setMinUpdateDistanceMeters(SMALLEST_DISPLACEMENT_25_METERS)
+        .setMinUpdateDistanceMeters(MIN_UPDATE_DISTANCE_METERS)
         .build()
 
     @SuppressLint("MissingPermission")
@@ -86,9 +86,11 @@ class LocationProvider @Inject constructor(
     fun locationFlow(): Flow<Result<Location>> = locationUpdates
 
     companion object {
+        // Updates closer than this to the last delivered location are dropped (e.g. while standing still),
+        // and each dropped update saves a Places API call.
         // This is a filter applied only when the interval fires.
         // The system does not continuously track your distance in the background between intervals.
-        private const val SMALLEST_DISPLACEMENT_25_METERS = 30F
+        private const val MIN_UPDATE_DISTANCE_METERS = 30F
 
         // This dictates how often the GPS hardware actually "wakes up" to compute your location.
         private const val INTERVAL_TIME = 30

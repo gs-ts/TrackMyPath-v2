@@ -33,7 +33,7 @@ import org.junit.runner.RunWith
  * automatically scrolls back to the top while the user is actively scrolling down.
  *
  * This simulates the real app behavior: user is walking, scrolling through the photo
- * stream, and every ~50 meters a new photo is fetched and prepended to the top,
+ * stream, and every ~30 meters a new photo is fetched and prepended to the top,
  * triggering animateScrollToItem(0) mid-scroll.
  *
  * What we're looking for in the results:
