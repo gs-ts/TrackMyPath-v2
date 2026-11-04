@@ -47,3 +47,6 @@ fastlane/report.xml
 
 # Agent skills (installed locally via Android CLI)
 .agents/
+
+# Project-local Claude Code skills (not shared with the repo)
+.claude/
