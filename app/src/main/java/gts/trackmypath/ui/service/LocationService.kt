@@ -8,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.location.Location
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -20,6 +21,7 @@ import gts.trackmypath.domain.photometadata.FetchPhotoMetadataForLocationUseCase
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.MainActivity
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -98,21 +100,46 @@ class LocationService : Service() {
     private fun collectLocationUpdates(routeId: Long) {
         locationUpdatesJob = locationProvider
             .locationFlow()
-            .mapLatest { location ->
-                Log.d("LocationService", "New location received: $location")
-                fetchPhotoMetadataForLocationUseCase(
-                    routeId = RouteId(id = routeId),
-                    location = PhotoMetadata.Location(
-                        latitude = location.latitude,
-                        longitude = location.longitude
-                    )
-                ).onSuccess {
-                    Log.d("LocationService", "photo received")
-                }.onFailure {
-                    Log.e("LocationService", "error fetching photo", it)
-                }
+            .mapLatest { locationResult ->
+                locationResult
+                    .onSuccess { location ->
+                        fetchPhotoMetadataForLocation(routeId = routeId, location = location)
+                    }
+                    .onFailure { exception ->
+                        // Location updates can't start (e.g. Google Play services is missing or outdated).
+                        // Stop rather than keep a tracking notification that will never produce photos.
+                        // onDestroy resets the tracking state, so the UI shows that tracking has stopped.
+                        // We don't retry: the user can tap Play again, which requests location updates again.
+                        Log.e("LocationService", "Location updates unavailable, stopping tracking", exception)
+                        stopSelf()
+                    }
             }
             .launchIn(scope = applicationScope)
+    }
+
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun fetchPhotoMetadataForLocation(routeId: Long, location: Location) {
+        Log.d("LocationService", "New location received: $location")
+        try {
+            fetchPhotoMetadataForLocationUseCase(
+                routeId = RouteId(id = routeId),
+                location = PhotoMetadata.Location(
+                    latitude = location.latitude,
+                    longitude = location.longitude
+                )
+            ).onSuccess {
+                Log.d("LocationService", "photo received")
+            }.onFailure {
+                Log.e("LocationService", "error fetching photo", it)
+            }
+        } catch (cancellationException: CancellationException) {
+            throw cancellationException // mapLatest cancels this fetch when a newer location arrives
+        } catch (exception: Exception) {
+            // Last-resort guard: this runs in applicationScope, which has no exception handler, so an
+            // unexpected failure (e.g. a full disk or unreadable filter preferences) would crash the app.
+            // Skip this location and keep tracking: the next location update tries again.
+            Log.e("LocationService", "unexpected error fetching photo, skipping this location", exception)
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? {

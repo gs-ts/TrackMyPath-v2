@@ -17,8 +17,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -65,20 +68,22 @@ class LocationProvider @Inject constructor(
             locationCallback
         ).addOnFailureListener { exception ->
             Log.e("LocationProvider", "requestLocationUpdates failed: $exception")
-            close(exception) // in case of exception, close the Flow
+            // Close the Flow with the exception: shareAsResultsIn delivers it to collectors as a failure.
+            close(exception)
         }
 
         awaitClose {
             fusedLocationClient.removeLocationUpdates(locationCallback)
             Log.d("LocationProvider", "Location updates stopped")
         }
-    }.shareIn(
-        scope = applicationScope,
-        replay = 0,
-        started = SharingStarted.WhileSubscribed(),
-    )
+    }.shareAsResultsIn(scope = applicationScope)
 
-    fun locationFlow(): Flow<Location> = locationUpdates
+    /**
+     * Emits a [Result.success] for each new location. If location updates can't be started
+     * (e.g. Google Play services is missing, disabled or outdated), it emits one [Result.failure]
+     * and requests location updates again only when a new collector arrives. It never retries on its own.
+     */
+    fun locationFlow(): Flow<Result<Location>> = locationUpdates
 
     companion object {
         // This is a filter applied only when the interval fires.
@@ -94,3 +99,22 @@ class LocationProvider @Inject constructor(
         private const val FASTEST_INTERVAL_TIME = 15
     }
 }
+
+/**
+ * Shares this flow in [scope], emitting each value as a [Result.success] and an upstream failure
+ * as one final [Result.failure].
+ *
+ * Why not just [shareIn]: an exception thrown upstream of [shareIn] never reaches the collectors.
+ * It fails the sharing coroutine in [scope] instead, and [ApplicationScope] has no exception handler,
+ * so on Android it would crash the app.
+ *
+ * Sharing stops when the last collector leaves, so the next collector restarts the upstream.
+ */
+internal fun <T> Flow<T>.shareAsResultsIn(scope: CoroutineScope): SharedFlow<Result<T>> =
+    map { value -> Result.success(value) }
+        .catch { exception -> emit(Result.failure(exception)) }
+        .shareIn(
+            scope = scope,
+            replay = 0,
+            started = SharingStarted.WhileSubscribed(),
+        )
