@@ -44,3 +44,6 @@ app/jacoco.exec
 # Fastlane report
 fastlane/report.xml
 .hotswan/
+
+# Agent skills (installed locally via Android CLI)
+.agents/
