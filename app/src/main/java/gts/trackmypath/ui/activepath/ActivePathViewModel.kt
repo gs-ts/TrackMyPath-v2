@@ -42,15 +42,16 @@ class ActivePathViewModel @Inject constructor(
     private val observeRouteWithPhotoMetadataUseCase: ObserveRouteWithPhotoMetadataContract
 ) : ViewModel() {
 
-    // What only this screen knows. The tracking state comes from routeTracker, and the photos from the database.
-    private val screenState = MutableStateFlow(ScreenState())
+    // Only user actions change the popups.
+    // The tracking state comes from routeTracker, and the photos from the database.
+    private val popups = MutableStateFlow(Popups())
 
     // The photos of the route on screen. The database query restarts only when that route changes,
-    // not on every screen state change (e.g. typing a name).
+    // not on every popup change (e.g. typing a name).
     @OptIn(ExperimentalCoroutinesApi::class)
     private val routePhotos: Flow<RoutePhotos?> = combine(
         routeTracker.state,
-        screenState,
+        popups,
         ::routeOnScreen
     )
         .distinctUntilChanged()
@@ -72,7 +73,7 @@ class ActivePathViewModel @Inject constructor(
 
     val state: StateFlow<State> = combine(
         routeTracker.state,
-        screenState,
+        popups,
         routePhotos,
         ::toState
     )
@@ -83,7 +84,7 @@ class ActivePathViewModel @Inject constructor(
             started = SharingStarted.Eagerly,
             // combine emits a moment later. Starting from the tracker's current state means that reopening
             // the app while tracking doesn't show the Start button first.
-            initialValue = toState(routeTracker.state.value, screenState.value, routePhotos = null),
+            initialValue = toState(routeTracker.state.value, popups.value, routePhotos = null),
         )
 
     // True from a tap on Start until the new route is created and handed to the tracker.
@@ -118,35 +119,35 @@ class ActivePathViewModel @Inject constructor(
 
     fun onStopTrackPathClick() {
         // The tracker reports Idle a moment after Stop. A second tap before that would finish the route again.
-        if (screenState.value.routeAwaitingName != null) return
+        if (popups.value.routeAwaitingName != null) return
         val routeId = when (val tracking = routeTracker.state.value) {
             is TrackingState.Tracking -> tracking.routeId
             TrackingState.Idle -> return
         }
-        screenState.update { screen -> screen.copy(routeAwaitingName = routeId) }
+        popups.update { popups -> popups.copy(routeAwaitingName = routeId) }
         viewModelScope.launch {
             stopTrackingUseCase(routeId = routeId)
         }
     }
 
     fun onPlaceFilterClick() {
-        screenState.update { screen -> screen.copy(shouldShowPlaceFilterBottomSheet = true) }
+        popups.update { popups -> popups.copy(shouldShowPlaceFilterBottomSheet = true) }
     }
 
     fun onClosePlaceFilterBottomSheet() {
-        screenState.update { screen -> screen.copy(shouldShowPlaceFilterBottomSheet = false) }
+        popups.update { popups -> popups.copy(shouldShowPlaceFilterBottomSheet = false) }
     }
 
     fun onRouteNameChange(newRouteName: String) {
-        screenState.update { screen -> screen.copy(routeNameInput = newRouteName) }
+        popups.update { popups -> popups.copy(routeNameInput = newRouteName) }
     }
 
     fun onConfirmNameRouteDialogClick() {
         // The Confirm button is enabled only for a valid name, and the dialog is shown only for a route.
-        val routeName = normalizeRouteName(screenState.value.routeNameInput) ?: return
-        val routeId = screenState.value.routeAwaitingName ?: return
-        screenState.update { screen ->
-            screen.withNameRouteDialogClosed().copy(shouldShowSnackbarRouteSavedConfirmation = true)
+        val routeName = normalizeRouteName(popups.value.routeNameInput) ?: return
+        val routeId = popups.value.routeAwaitingName ?: return
+        popups.update { popups ->
+            popups.withNameRouteDialogClosed().copy(shouldShowSnackbarRouteSavedConfirmation = true)
         }
         viewModelScope.launch {
             renameRouteUseCase(routeId = routeId, name = routeName)
@@ -154,61 +155,60 @@ class ActivePathViewModel @Inject constructor(
     }
 
     private fun onDiscardRouteClick() {
-        val routeId = screenState.value.routeAwaitingName ?: return
+        val routeId = popups.value.routeAwaitingName ?: return
         // Close the dialog first, so the screen stops showing the route before it's deleted.
-        screenState.update { screen -> screen.withNameRouteDialogClosed() }
+        popups.update { popups -> popups.withNameRouteDialogClosed() }
         viewModelScope.launch {
             deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
         }
     }
 
     fun hideSnackbarRouteSavedConfirmation() {
-        screenState.update { screen -> screen.copy(shouldShowSnackbarRouteSavedConfirmation = false) }
+        popups.update { popups -> popups.copy(shouldShowSnackbarRouteSavedConfirmation = false) }
     }
 
     // The tracked route, or else the stopped route that waits for a name.
-    private fun routeOnScreen(tracking: TrackingState, screen: ScreenState): RouteId? =
+    private fun routeOnScreen(tracking: TrackingState, popups: Popups): RouteId? =
         when (tracking) {
             is TrackingState.Tracking -> tracking.routeId
-            TrackingState.Idle -> screen.routeAwaitingName
+            TrackingState.Idle -> popups.routeAwaitingName
         }
 
-    private fun toState(tracking: TrackingState, screen: ScreenState, routePhotos: RoutePhotos?) =
+    private fun toState(tracking: TrackingState, popups: Popups, routePhotos: RoutePhotos?) =
         State(
             isTracking = tracking is TrackingState.Tracking,
             // The photos of a route that's no longer on screen are cleared in the same update that removes it,
             // e.g. when the name dialog closes, not one update later.
-            photos = routePhotos?.takeIf { it.routeId == routeOnScreen(tracking, screen) }?.photos
+            photos = routePhotos?.takeIf { it.routeId == routeOnScreen(tracking, popups) }?.photos
                 ?: persistentListOf(),
-            shouldShowPlaceFilterBottomSheet = screen.shouldShowPlaceFilterBottomSheet,
-            routeNameInput = screen.routeNameInput,
-            shouldShowNameRouteDialog = screen.routeAwaitingName != null,
-            shouldShowSnackbarRouteSavedConfirmation = screen.shouldShowSnackbarRouteSavedConfirmation,
+            popups = popups,
         )
 
-    private data class ScreenState(
-        // Set by Stop. The name dialog is open while it's set.
-        val routeAwaitingName: RouteId? = null,
-        val routeNameInput: String = "",
-        val shouldShowPlaceFilterBottomSheet: Boolean = false,
-        val shouldShowSnackbarRouteSavedConfirmation: Boolean = false,
-    ) {
-        fun withNameRouteDialogClosed() = copy(routeAwaitingName = null, routeNameInput = "")
-    }
+    private fun Popups.withNameRouteDialogClosed() = copy(routeAwaitingName = null, routeNameInput = "")
 
     private data class RoutePhotos(val routeId: RouteId, val photos: PersistentList<PhotoMetadata>)
 
     data class State(
         val isTracking: Boolean = false,
         val photos: PersistentList<PhotoMetadata> = persistentListOf(),
-        val shouldShowPlaceFilterBottomSheet: Boolean = false,
-        val routeNameInput: String = "",
-        val shouldShowNameRouteDialog: Boolean = false,
-        val shouldShowSnackbarRouteSavedConfirmation: Boolean = false
+        val popups: Popups = Popups(),
     ) {
 
         val isStreamLoading: Boolean
             get() = isTracking && photos.isEmpty()
+    }
+
+    // What pops up over the photo stream: the name dialog, the filter sheet and the "route saved" snackbar.
+    data class Popups(
+        // Set by Stop: the stopped route. The name dialog is open while it's set.
+        val routeAwaitingName: RouteId? = null,
+        val routeNameInput: String = "",
+        val shouldShowPlaceFilterBottomSheet: Boolean = false,
+        val shouldShowSnackbarRouteSavedConfirmation: Boolean = false,
+    ) {
+
+        val shouldShowNameRouteDialog: Boolean
+            get() = routeAwaitingName != null
     }
 
     sealed interface Action {

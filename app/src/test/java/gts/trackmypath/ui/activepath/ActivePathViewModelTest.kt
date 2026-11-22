@@ -123,7 +123,7 @@ class ActivePathViewModelTest {
         assertEquals(expected = TrackingState.Idle, actual = fakeRouteTracker.state.value)
         // Finished before the user names it, so the route is kept whatever they do with the dialog.
         assertEquals(expected = now, actual = fakeRouteRepository.routes.getValue(RouteId(1)).finishedAt)
-        assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowNameRouteDialog)
         assertFalse(actual = viewModel.state.value.isTracking)
     }
 
@@ -139,7 +139,7 @@ class ActivePathViewModelTest {
         viewModel.onStopTrackPathClick()
 
         assertEquals(expected = 1, actual = fakeRouteTracker.stopRequests)
-        assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowNameRouteDialog)
     }
 
     @Test
@@ -161,7 +161,7 @@ class ActivePathViewModelTest {
 
         viewModel.onStopTrackPathClick()
 
-        assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowNameRouteDialog)
         assertEquals(expected = photos, actual = viewModel.state.value.photos)
     }
 
@@ -190,7 +190,7 @@ class ActivePathViewModelTest {
         val state = viewModel.state.value
         assertFalse(actual = state.isTracking)
         assertTrue(actual = state.photos.isEmpty())
-        assertFalse(actual = state.shouldShowNameRouteDialog)
+        assertFalse(actual = state.popups.shouldShowNameRouteDialog)
     }
 
     @Test
@@ -199,7 +199,7 @@ class ActivePathViewModelTest {
 
         viewModel.onRouteNameChange(newRouteName = "My Cool Route")
 
-        assertEquals(expected = "My Cool Route", actual = viewModel.state.value.routeNameInput)
+        assertEquals(expected = "My Cool Route", actual = viewModel.state.value.popups.routeNameInput)
     }
 
     @Test
@@ -217,10 +217,10 @@ class ActivePathViewModelTest {
         assertEquals(expected = now, actual = route.finishedAt)
 
         val state = viewModel.state.value
-        assertFalse(actual = state.shouldShowNameRouteDialog)
-        assertEquals(expected = "", actual = state.routeNameInput)
+        assertFalse(actual = state.popups.shouldShowNameRouteDialog)
+        assertEquals(expected = "", actual = state.popups.routeNameInput)
         assertTrue(actual = state.photos.isEmpty())
-        assertTrue(actual = state.shouldShowSnackbarRouteSavedConfirmation)
+        assertTrue(actual = state.popups.shouldShowSnackbarRouteSavedConfirmation)
     }
 
     @Test
@@ -233,7 +233,7 @@ class ActivePathViewModelTest {
         viewModel.onConfirmNameRouteDialogClick()
 
         assertNull(actual = fakeRouteRepository.routes.getValue(RouteId(1)).name)
-        assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowNameRouteDialog)
     }
 
     @Test
@@ -247,12 +247,12 @@ class ActivePathViewModelTest {
         viewModel.onConfirmNameRouteDialogClick()
 
         // check to ensure it is actually true before we hide it
-        assertTrue(actual = viewModel.state.value.shouldShowSnackbarRouteSavedConfirmation)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowSnackbarRouteSavedConfirmation)
 
         // call the hide function
         viewModel.hideSnackbarRouteSavedConfirmation()
 
-        assertFalse(actual = viewModel.state.value.shouldShowSnackbarRouteSavedConfirmation)
+        assertFalse(actual = viewModel.state.value.popups.shouldShowSnackbarRouteSavedConfirmation)
     }
 
     @Test
@@ -267,9 +267,9 @@ class ActivePathViewModelTest {
         assertTrue(actual = fakeRouteRepository.routes.isEmpty())
 
         val state = viewModel.state.value
-        assertFalse(actual = state.shouldShowNameRouteDialog)
+        assertFalse(actual = state.popups.shouldShowNameRouteDialog)
         assertTrue(actual = state.photos.isEmpty())
-        assertFalse(actual = state.shouldShowSnackbarRouteSavedConfirmation)
+        assertFalse(actual = state.popups.shouldShowSnackbarRouteSavedConfirmation)
     }
 
     @Test
@@ -288,7 +288,7 @@ class ActivePathViewModelTest {
             // The database query for the photos stops a moment after the dialog closes.
             // No state in between may show the photos of a route that's no longer on screen.
             val closed = awaitItem()
-            assertFalse(actual = closed.shouldShowNameRouteDialog)
+            assertFalse(actual = closed.popups.shouldShowNameRouteDialog)
             assertTrue(actual = closed.photos.isEmpty())
             expectNoEvents()
         }
@@ -315,7 +315,7 @@ class ActivePathViewModelTest {
 
         viewModel.onPlaceFilterClick()
 
-        assertTrue(actual = viewModel.state.value.shouldShowPlaceFilterBottomSheet)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowPlaceFilterBottomSheet)
     }
 
     @Test
@@ -323,10 +323,10 @@ class ActivePathViewModelTest {
         val (viewModel, _, _) = createViewModel()
 
         viewModel.onPlaceFilterClick() // Show it first
-        assertTrue(actual = viewModel.state.value.shouldShowPlaceFilterBottomSheet)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowPlaceFilterBottomSheet)
 
         viewModel.onClosePlaceFilterBottomSheet()
-        assertFalse(actual = viewModel.state.value.shouldShowPlaceFilterBottomSheet)
+        assertFalse(actual = viewModel.state.value.popups.shouldShowPlaceFilterBottomSheet)
     }
 
     // --- Helper classes and setup ---
