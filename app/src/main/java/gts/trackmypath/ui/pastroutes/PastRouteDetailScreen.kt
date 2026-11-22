@@ -50,7 +50,7 @@ private fun PastRouteDetailContent(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = routesWithPhotoMetadata.displayName.orEmpty())
+                    Text(text = routeTitle(routesWithPhotoMetadata))
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {

@@ -7,6 +7,7 @@ import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.ObserveAllRoutesWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.RenameRouteUseCase
 import gts.trackmypath.domain.route.RouteId
+import gts.trackmypath.domain.route.normalizeRouteName
 import gts.trackmypath.ui.model.RouteWithPhotoMetadataUiState
 import gts.trackmypath.ui.model.toUiState
 import kotlinx.collections.immutable.ImmutableList
@@ -74,14 +75,12 @@ class PastRoutesViewModel @Inject constructor(
     }
 
     private fun onConfirmNameRouteDialogClick() {
+        // The Confirm button is enabled only for a valid name.
+        val routeName = normalizeRouteName(state.value.routeNameInput) ?: return
         val routeId = state.value.routeToRename
-        val routeName = state.value.routeNameInput
         if (routeId != null) {
             viewModelScope.launch {
-                renameRouteUseCase(
-                    routeId = routeId,
-                    newDisplayName = routeName
-                )
+                renameRouteUseCase(routeId = routeId, name = routeName)
             }
         }
         onDismissNameRouteDialogClick()

@@ -94,7 +94,6 @@ private fun PastRoutesContent(
     if (state.shouldShowRenameRouteDialog) {
         NameRouteDialog(
             routeName = state.routeNameInput,
-            isRenamingState = true,
             onRouteNameChange = { onAction(PastRoutesViewModel.Action.OnRouteNameChange(newName = it)) },
             onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmNameRouteDialogClick) },
             onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissNameRouteDialogClick) }
@@ -255,7 +254,7 @@ private fun RouteCard(
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 4.dp),
-                    text = routeWithPhotoMetadata.displayName.orEmpty(),
+                    text = routeTitle(routeWithPhotoMetadata),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
@@ -286,7 +285,7 @@ private fun RouteCard(
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 modifier = Modifier.padding(start = 4.dp),
-                text = routeWithPhotoMetadata.createdAt,
+                text = routeDate(routeWithPhotoMetadata),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
