@@ -91,16 +91,16 @@ private fun PastRoutesContent(
     onAction: (PastRoutesViewModel.Action) -> Unit,
     onBackClick: () -> Unit,
 ) {
-    if (state.shouldShowRenameRouteDialog) {
+    if (state.popups.shouldShowRenameRouteDialog) {
         NameRouteDialog(
-            routeName = state.routeNameInput,
+            routeName = state.popups.routeNameInput,
             onRouteNameChange = { onAction(PastRoutesViewModel.Action.OnRouteNameChange(newName = it)) },
             onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmNameRouteDialogClick) },
             onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissNameRouteDialogClick) }
         )
     }
 
-    if (state.shouldShowDeletePastRouteDialog) {
+    if (state.popups.shouldShowDeletePastRouteDialog) {
         DeletePastRouteDialog(
             onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmDeleteRouteClick) },
             onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissDeleteRouteDialogClick) }
@@ -117,8 +117,8 @@ private fun PastRoutesContent(
         }
     )
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(key1 = state.shouldShowSnackbarRouteDeletedConfirmation) {
-        if (state.shouldShowSnackbarRouteDeletedConfirmation) {
+    LaunchedEffect(key1 = state.popups.shouldShowSnackbarRouteDeletedConfirmation) {
+        if (state.popups.shouldShowSnackbarRouteDeletedConfirmation) {
             try {
                 snackbarHostState.showSnackbar(
                     message = "Route deleted successfully.",

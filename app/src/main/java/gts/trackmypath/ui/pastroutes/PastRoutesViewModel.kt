@@ -12,39 +12,42 @@ import gts.trackmypath.ui.model.RouteWithPhotoMetadataUiState
 import gts.trackmypath.ui.model.toUiState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class PastRoutesViewModel @Inject constructor(
-    private val observeAllRoutesWithPhotoMetadataUseCase: ObserveAllRoutesWithPhotoMetadataUseCase,
+    observeAllRoutesWithPhotoMetadataUseCase: ObserveAllRoutesWithPhotoMetadataUseCase,
     private val renameRouteUseCase: RenameRouteUseCase,
     private val deleteRouteWithPhotoMetadataUseCase: DeleteRouteWithPhotoMetadataUseCase
 ) : ViewModel() {
 
-    val state: StateFlow<State>
-        field = MutableStateFlow(State())
+    // Only user actions change the popups. The routes come from the database.
+    private val popups = MutableStateFlow(Popups())
 
-    init {
-        observeAllRoutesWithPhotoMetadata()
-    }
+    // Mapped once per database change, not on every popup change (e.g. typing a name),
+    // so the list keeps its instance.
+    private val routes: Flow<ImmutableList<RouteWithPhotoMetadataUiState>> =
+        observeAllRoutesWithPhotoMetadataUseCase().map { routes -> routes.toUiState() }
 
-    fun observeAllRoutesWithPhotoMetadata() {
-        viewModelScope.launch {
-            observeAllRoutesWithPhotoMetadataUseCase()
-                .collect { routesWithPhotoMetadata ->
-                    state.update { state ->
-                        state.copy(
-                            isLoading = false,
-                            routesWithPhotoMetadata = routesWithPhotoMetadata.toUiState()
-                        )
-                    }
-                }
-        }
+    val state: StateFlow<State> = combine(routes, popups) { routes, popups ->
+        State(isLoading = false, routesWithPhotoMetadata = routes, popups = popups)
     }
+        .stateIn(
+            scope = viewModelScope,
+            // The database query stops 5 s after the screen goes away, e.g. while a route's details are open.
+            // The last state stays, so coming back shows the list at once.
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            initialValue = State(),
+        )
 
     fun onAction(action: Action) {
         when (action) {
@@ -60,24 +63,20 @@ class PastRoutesViewModel @Inject constructor(
     }
 
     private fun onRenameRouteClick(routeId: RouteId) {
-        state.update { state ->
-            state.copy(
-                routeToRename = routeId,
-                routeNameInput = state.routesWithPhotoMetadata
-                    .find { it.routeId == routeId }
-                    ?.displayName.orEmpty()
-            )
+        val currentName = state.value.routesWithPhotoMetadata.find { it.routeId == routeId }?.displayName
+        popups.update { popups ->
+            popups.copy(routeToRename = routeId, routeNameInput = currentName.orEmpty())
         }
     }
 
     private fun onRouteNameChange(newRouteName: String) {
-        state.update { state -> state.copy(routeNameInput = newRouteName) }
+        popups.update { popups -> popups.copy(routeNameInput = newRouteName) }
     }
 
     private fun onConfirmNameRouteDialogClick() {
         // The Confirm button is enabled only for a valid name.
-        val routeName = normalizeRouteName(state.value.routeNameInput) ?: return
-        val routeId = state.value.routeToRename
+        val routeName = normalizeRouteName(popups.value.routeNameInput) ?: return
+        val routeId = popups.value.routeToRename
         if (routeId != null) {
             viewModelScope.launch {
                 renameRouteUseCase(routeId = routeId, name = routeName)
@@ -87,54 +86,45 @@ class PastRoutesViewModel @Inject constructor(
     }
 
     private fun onDismissNameRouteDialogClick() {
-        state.update { state ->
-            state.copy(
-                routeToRename = null,
-                routeNameInput = ""
-            )
-        }
+        popups.update { popups -> popups.copy(routeToRename = null, routeNameInput = "") }
     }
 
     private fun onDeleteRouteClick(routeId: RouteId) {
-        state.update { state ->
-            state.copy(routeIdToDelete = routeId)
-        }
+        popups.update { popups -> popups.copy(routeIdToDelete = routeId) }
     }
 
     private fun onConfirmDeleteRouteClick() {
-        val routeId = state.value.routeIdToDelete ?: return
+        val routeId = popups.value.routeIdToDelete ?: return
         viewModelScope.launch {
             deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
-            state.update { state ->
-                state.copy(
-                    routeIdToDelete = null,
-                    shouldShowSnackbarRouteDeletedConfirmation = true
-                )
+            popups.update { popups ->
+                popups.copy(routeIdToDelete = null, shouldShowSnackbarRouteDeletedConfirmation = true)
             }
         }
     }
 
     private fun hideSnackbarRouteDeletedConfirmation() {
-        state.update { state ->
-            state.copy(shouldShowSnackbarRouteDeletedConfirmation = false)
-        }
+        popups.update { popups -> popups.copy(shouldShowSnackbarRouteDeletedConfirmation = false) }
     }
 
     private fun onDismissDeleteRouteDialogClick() {
-        state.update { state ->
-            state.copy(
-                routeIdToDelete = null
-            )
-        }
+        popups.update { popups -> popups.copy(routeIdToDelete = null) }
     }
 
     data class State(
         val isLoading: Boolean = true,
         val routesWithPhotoMetadata: ImmutableList<RouteWithPhotoMetadataUiState> = persistentListOf(),
+        val popups: Popups = Popups(),
+    )
+
+    // What pops up over the list: the rename dialog, the delete dialog and the "route deleted" snackbar.
+    data class Popups(
+        // Set by Rename in a route's menu. The rename dialog is open while it's set.
         val routeToRename: RouteId? = null,
         val routeNameInput: String = "",
+        // Set by Delete in a route's menu. The delete dialog is open while it's set.
         val routeIdToDelete: RouteId? = null,
-        val shouldShowSnackbarRouteDeletedConfirmation: Boolean = false
+        val shouldShowSnackbarRouteDeletedConfirmation: Boolean = false,
     ) {
 
         val shouldShowRenameRouteDialog: Boolean
