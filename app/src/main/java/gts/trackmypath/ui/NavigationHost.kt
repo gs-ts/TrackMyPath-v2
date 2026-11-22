@@ -6,6 +6,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -51,14 +52,14 @@ fun NavigationHost() {
                     }
                 )
             }
-            entry<PastRoutesRoute> {
+            entry<PastRoutesRoute> { navKey ->
                 PastRoutesScreen(
                     viewModel = hiltViewModel(),
                     onNavigateToPastRouteDetail = { routeId ->
                         backStack.add(PastRouteDetailRoute(routeId = routeId.id))
                     },
                     onBackClick = {
-                        backStack.removeLastOrNull()
+                        backStack.removeIfLast(navKey)
                     }
                 )
             }
@@ -74,7 +75,7 @@ fun NavigationHost() {
                 PastRouteDetailScreen(
                     viewModel = viewModel,
                     onBackClick = {
-                        backStack.removeLastOrNull()
+                        backStack.removeIfLast(navKey)
                     }
                 )
             }
@@ -94,4 +95,11 @@ fun NavigationHost() {
                 slideOutHorizontally(targetOffsetX = { it })
         },
     )
+}
+
+// A screen that slides out still takes taps for a moment, so a fast double tap on its back arrow
+// clicks twice. Only the screen on top goes back: a second tap does nothing, instead of also removing
+// the screen below or emptying the back stack, which crashes NavDisplay.
+private fun NavBackStack<NavKey>.removeIfLast(navKey: NavKey) {
+    if (lastOrNull() == navKey) removeLastOrNull()
 }

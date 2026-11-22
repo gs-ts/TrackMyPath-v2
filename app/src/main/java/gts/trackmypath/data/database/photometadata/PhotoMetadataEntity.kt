@@ -7,6 +7,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import gts.trackmypath.data.database.route.RouteEntity
+import gts.trackmypath.domain.Coordinates
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 
 @Entity(
@@ -44,7 +45,7 @@ fun PhotoMetadataEntity.toDomain() = PhotoMetadata(
     id = id,
     placeId = placeId,
     photoUri = photoUri,
-    location = PhotoMetadata.Location(
+    location = Coordinates(
         latitude = location.latitude,
         longitude = location.longitude
     ),

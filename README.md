@@ -43,7 +43,7 @@ while the data layer implements these abstractions, strictly following the Depen
 Inside the MVVM setup, UDF is heavily applied.
 - **UseCase / Interactor Pattern**
 - **Repository Pattern**
-- **Adapter Pattern** (Ports and Adapters): Abstract framework dependencies behind interfaces (like `LocationServiceManager`). 
+- **Adapter Pattern** (Ports and Adapters): Abstract framework dependencies behind interfaces (like `RouteTracker`). 
 Instead of relying on mock libraries (like Mockito/MockK), custom Fake implementations are used for your unit tests.
 - **Observer / Reactive Pattern**: with Kotlin Coroutines and Flows
 - **State-Driven One-Off Events**: Rather than using Channel or SharedFlow to fire one-off UI events (like Snackbars or Dialogs), 
@@ -55,7 +55,7 @@ This aligns perfectly with the latest Jetpack Compose best practices.
 ## Unit Testing & Quality Assurance
 - **ViewModel Testing**: The app uses turbine by Cash App for testing Coroutine StateFlow emissions inside ViewModels (e.g., `ActivePathViewModelTest`).
 - **No Mocks Policy**: Instead of relying on mock-generation libraries (like Mockito or MockK), 
-the project relies on manually created Fake implementations of dependencies (e.g., `LocationServiceManagerFake`). 
+the project relies on manually created Fake implementations of dependencies (e.g., `RouteTrackerFake`). 
 This leads to less brittle tests, faster execution, and enforces better architectural boundaries via interfaces.
 - **Dispatcher Injection**: A custom JUnit Rule (`MainDispatcherRule`) combined with injected 
 CoroutineDispatchers ensures predictable, synchronous test execution for coroutine-heavy code.

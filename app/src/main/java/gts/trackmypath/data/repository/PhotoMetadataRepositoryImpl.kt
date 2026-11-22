@@ -7,10 +7,11 @@ import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.di.ApplicationScope
 import gts.trackmypath.di.IoDispatcher
+import gts.trackmypath.domain.Coordinates
 import gts.trackmypath.domain.PhotoMetadataUnavailableException
 import gts.trackmypath.domain.PlaceIdInvalidException
 import gts.trackmypath.domain.PlacesUnavailableException
-import gts.trackmypath.domain.photometadata.PhotoMetadata
+import gts.trackmypath.domain.filters.PlaceFilter
 import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
 import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.CoroutineDispatcher
@@ -51,13 +52,15 @@ class PhotoMetadataRepositoryImpl @Inject constructor(
 
     override suspend fun fetchPhotoMetadataForLocation(
         routeId: RouteId,
-        location: PhotoMetadata.Location
+        location: Coordinates,
+        placeFilters: Set<PlaceFilter>
     ): Result<Unit> {
         Log.d("PhotoMetadataRepository", "fetchPhotoMetadataForLocation with routeId = ${routeId.id}")
 
         return withContext(ioDispatcher) {
             val places = googlePlacesClient.searchNearbyPlaces(
-                latLng = LatLng(location.latitude, location.longitude)
+                latLng = LatLng(location.latitude, location.longitude),
+                placeTypes = placeFilters.flatMap { placeFilter -> placeFilter.types }
             )
             if (places.isEmpty()) { // first check: no places available
                 return@withContext Result.failure(exception = PlacesUnavailableException("No places available."))

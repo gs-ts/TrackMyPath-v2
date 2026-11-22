@@ -5,6 +5,7 @@ import coil3.intercept.Interceptor
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
+import gts.trackmypath.domain.Coordinates
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
 import kotlinx.coroutines.test.runTest
@@ -20,7 +21,7 @@ class PhotoMetadataInterceptorTest {
             id = 1L,
             placeId = "place123",
             photoUri = "https://example.com/original.jpg",
-            location = PhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+            location = Coordinates(latitude = 0.0, longitude = 0.0)
         )
         val initialRequest = ImageRequest.Builder(context = FakeContext()).data(mockData).build()
         val successResult = SuccessResult(
@@ -33,7 +34,8 @@ class PhotoMetadataInterceptorTest {
         val mockRepository = object : PhotoMetadataRepository {
             override suspend fun fetchPhotoMetadataForLocation(
                 routeId: gts.trackmypath.domain.route.RouteId,
-                location: PhotoMetadata.Location
+                location: Coordinates,
+                placeFilters: Set<gts.trackmypath.domain.filters.PlaceFilter>
             ): Result<Unit> = Result.success(Unit)
 
             override suspend fun refreshAndSavePhotoUri(placeId: String, expiredPhotoUri: String): String? {
@@ -73,7 +75,7 @@ class PhotoMetadataInterceptorTest {
             id = 1L,
             placeId = "place123",
             photoUri = "https://example.com/original.jpg",
-            location = PhotoMetadata.Location(0.0, 0.0)
+            location = Coordinates(0.0, 0.0)
         )
         
         val initialRequest = ImageRequest.Builder(FakeContext()).data(mockData).build()
@@ -92,7 +94,8 @@ class PhotoMetadataInterceptorTest {
         val mockRepository = object : PhotoMetadataRepository {
             override suspend fun fetchPhotoMetadataForLocation(
                 routeId: gts.trackmypath.domain.route.RouteId,
-                location: PhotoMetadata.Location
+                location: Coordinates,
+                placeFilters: Set<gts.trackmypath.domain.filters.PlaceFilter>
             ): Result<Unit> = Result.success(value = Unit)
 
             override suspend fun refreshAndSavePhotoUri(placeId: String, expiredPhotoUri: String): String? {
@@ -140,7 +143,7 @@ class PhotoMetadataInterceptorTest {
             id = 1L,
             placeId = "place123",
             photoUri = "https://example.com/original.jpg",
-            location = PhotoMetadata.Location(0.0, 0.0)
+            location = Coordinates(0.0, 0.0)
         )
         
         val initialRequest = ImageRequest.Builder(FakeContext()).data(mockData).build()
@@ -154,7 +157,8 @@ class PhotoMetadataInterceptorTest {
         val mockRepository = object : PhotoMetadataRepository {
             override suspend fun fetchPhotoMetadataForLocation(
                 routeId: gts.trackmypath.domain.route.RouteId,
-                location: PhotoMetadata.Location
+                location: Coordinates,
+                placeFilters: Set<gts.trackmypath.domain.filters.PlaceFilter>
             ): Result<Unit> = Result.success(value = Unit)
 
             override suspend fun refreshAndSavePhotoUri(placeId: String, expiredPhotoUri: String): String? {
@@ -194,7 +198,7 @@ class PhotoMetadataInterceptorTest {
             id = 1L,
             placeId = "place123",
             photoUri = "https://example.com/original.jpg",
-            location = PhotoMetadata.Location(0.0, 0.0)
+            location = Coordinates(0.0, 0.0)
         )
         
         val initialRequest = ImageRequest.Builder(FakeContext()).data(mockData).build()
@@ -208,7 +212,8 @@ class PhotoMetadataInterceptorTest {
         val mockRepository = object : PhotoMetadataRepository {
             override suspend fun fetchPhotoMetadataForLocation(
                 routeId: gts.trackmypath.domain.route.RouteId,
-                location: PhotoMetadata.Location
+                location: Coordinates,
+                placeFilters: Set<gts.trackmypath.domain.filters.PlaceFilter>
             ): Result<Unit> = Result.success(value = Unit)
 
             override suspend fun refreshAndSavePhotoUri(placeId: String, expiredPhotoUri: String): String? {

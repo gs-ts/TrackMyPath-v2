@@ -56,7 +56,6 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
-import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.composables.NameRouteDialog
 import gts.trackmypath.ui.composables.PhotoCard
 import gts.trackmypath.ui.mockdata.photoMetadataMock
@@ -123,9 +122,9 @@ private fun ActivePathContent(
         )
     }
 
-    if (state.shouldShowNameRouteDialog) {
+    if (state.popups.shouldShowNameRouteDialog) {
         NameRouteDialog(
-            routeName = state.routeNameInput,
+            routeName = state.popups.routeNameInput,
             onRouteNameChange = { onAction(ActivePathViewModel.Action.OnRouteNameChange(routeName = it)) },
             onConfirmClick = { onAction(ActivePathViewModel.Action.OnConfirmNameRouteDialogClick) },
             onDismissClick = null, // Back and a tap outside do nothing, so the user must name the route or discard it.
@@ -143,8 +142,8 @@ private fun ActivePathContent(
         }
     )
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(key1 = state.shouldShowSnackbarRouteSavedConfirmation) {
-        if (state.shouldShowSnackbarRouteSavedConfirmation) {
+    LaunchedEffect(key1 = state.popups.shouldShowSnackbarRouteSavedConfirmation) {
+        if (state.popups.shouldShowSnackbarRouteSavedConfirmation) {
             try {
                 snackbarHostState.showSnackbar(
                     message = "Route saved successfully.",
@@ -159,7 +158,7 @@ private fun ActivePathContent(
     }
 
     val sheetState = rememberBottomSheetState(initialValue = SheetValue.Hidden)
-    if (state.shouldShowPlaceFilterBottomSheet) {
+    if (state.popups.shouldShowPlaceFilterBottomSheet) {
         PlaceFilterBottomSheet(
             sheetState = sheetState,
             onClose = { onAction(ActivePathViewModel.Action.OnClosePlaceFilterBottomSheet) }
@@ -370,8 +369,7 @@ private fun ActivePathStartedPreview() {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             ActivePathContent(
                 state = ActivePathViewModel.State(
-                    isLocationServiceRunning = true,
-                    ongoingRouteId = RouteId(1),
+                    isTracking = true,
                     photos = photoMetadataMock
                 ),
                 onAction = {},
@@ -399,8 +397,7 @@ private fun ActivePathLoadingPreview() {
     TrackMyPathV2Theme {
         ActivePathContent(
             state = ActivePathViewModel.State(
-                isLocationServiceRunning = true,
-                ongoingRouteId = RouteId(1),
+                isTracking = true,
                 photos = persistentListOf()
             ),
             onAction = {},

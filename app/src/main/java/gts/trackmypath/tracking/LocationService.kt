@@ -1,51 +1,35 @@
-package gts.trackmypath.ui.service
+package gts.trackmypath.tracking
 
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.location.Location
-import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.PermissionChecker
+import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import gts.trackmypath.R
-import gts.trackmypath.data.LocationProvider
-import gts.trackmypath.di.ApplicationScope
-import gts.trackmypath.domain.photometadata.FetchPhotoMetadataForLocationUseCase
-import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.RouteId
+import gts.trackmypath.domain.tracking.FindPhotosAlongRouteUseCase
 import gts.trackmypath.ui.MainActivity
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class LocationService : Service() {
+class LocationService : LifecycleService() {
 
     @Inject
-    @ApplicationScope
-    lateinit var applicationScope: CoroutineScope
+    lateinit var routeTracker: ServiceRouteTracker
 
     @Inject
-    lateinit var locationProvider: LocationProvider
-
-    @Inject
-    lateinit var locationServiceStateHolder: LocationServiceStateHolder
-
-    @Inject
-    lateinit var fetchPhotoMetadataForLocationUseCase: FetchPhotoMetadataForLocationUseCase
-
-    private var locationUpdatesJob: Job? = null
+    lateinit var findPhotosAlongRouteUseCase: FindPhotosAlongRouteUseCase
 
     // The route this service tracks, set by the first start command.
     private var trackedRouteId: Long? = null
@@ -61,7 +45,7 @@ class LocationService : Service() {
         super.onStartCommand(intent, flags, startId)
 
         if (arePermissionsGranted().not()) {
-            locationServiceStateHolder.setServiceRunning(isRunning = false)
+            routeTracker.onTrackingStopped()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
@@ -73,7 +57,7 @@ class LocationService : Service() {
             startForegroundLocationService() -> trackRoute(requestedRouteId = routeId)
             else -> {
                 // Android didn't let the service run in the foreground, so nothing is tracked. Say so, and stop.
-                locationServiceStateHolder.setServiceRunning(isRunning = false)
+                routeTracker.onTrackingStopped()
                 stopSelf()
             }
         }
@@ -102,66 +86,33 @@ class LocationService : Service() {
     private fun trackRoute(requestedRouteId: Long) {
         val routeId = trackedRouteId ?: requestedRouteId.also { newRouteId ->
             trackedRouteId = newRouteId
-            collectLocationUpdates(routeId = newRouteId)
+            findPhotosAlongRoute(routeId = RouteId(id = newRouteId))
         }
-        locationServiceStateHolder.setServiceRunning(isRunning = true, activeRouteId = RouteId(routeId))
+        routeTracker.onTrackingStarted(routeId = RouteId(id = routeId))
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun collectLocationUpdates(routeId: Long) {
-        locationUpdatesJob = locationProvider
-            .locationFlow()
-            .mapLatest { locationResult ->
-                locationResult
-                    .onSuccess { location ->
-                        fetchPhotoMetadataForLocation(routeId = routeId, location = location)
-                    }
-                    .onFailure { exception ->
-                        // Location updates can't start (e.g. Google Play services is missing or outdated).
-                        // Stop rather than keep a tracking notification that will never produce photos.
-                        // onDestroy resets the tracking state, so the UI shows that tracking has stopped.
-                        // We don't retry: the user can tap Play again, which requests location updates again.
-                        Log.e("LocationService", "Location updates unavailable, stopping tracking", exception)
-                        stopSelf()
-                    }
+    private fun findPhotosAlongRoute(routeId: RouteId) {
+        findPhotosAlongRouteUseCase(routeId = routeId)
+            .onEach { result ->
+                result
+                    .onSuccess { Log.d("LocationService", "photo received") }
+                    .onFailure { Log.e("LocationService", "error fetching photo", it) }
             }
-            .launchIn(scope = applicationScope)
-    }
-
-    @Suppress("TooGenericExceptionCaught")
-    private suspend fun fetchPhotoMetadataForLocation(routeId: Long, location: Location) {
-        Log.d("LocationService", "New location received: $location")
-        try {
-            fetchPhotoMetadataForLocationUseCase(
-                routeId = RouteId(id = routeId),
-                location = PhotoMetadata.Location(
-                    latitude = location.latitude,
-                    longitude = location.longitude
-                )
-            ).onSuccess {
-                Log.d("LocationService", "photo received")
-            }.onFailure {
-                Log.e("LocationService", "error fetching photo", it)
+            .catch { exception ->
+                // Location updates can't start (e.g. Google Play services is missing or outdated).
+                // Stop rather than keep a tracking notification that will never produce photos.
+                // onDestroy resets the tracking state, so the UI shows that tracking has stopped.
+                // We don't retry: the user can tap Play again, which requests location updates again.
+                Log.e("LocationService", "Location updates unavailable, stopping tracking", exception)
+                stopSelf()
             }
-        } catch (cancellationException: CancellationException) {
-            throw cancellationException // mapLatest cancels this fetch when a newer location arrives
-        } catch (exception: Exception) {
-            // Last-resort guard: this runs in applicationScope, which has no exception handler, so an
-            // unexpected failure (e.g. a full disk or unreadable filter preferences) would crash the app.
-            // Skip this location and keep tracking: the next location update tries again.
-            Log.e("LocationService", "unexpected error fetching photo, skipping this location", exception)
-        }
-    }
-
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
+            // lifecycleScope is cancelled right after onDestroy, and that stops the location updates.
+            .launchIn(scope = lifecycleScope)
     }
 
     override fun onDestroy() {
         Log.d("LocationService", "onDestroy: Stopping location service")
-        locationUpdatesJob?.cancel()
-        locationUpdatesJob = null
-        locationServiceStateHolder.setServiceRunning(isRunning = false)
+        routeTracker.onTrackingStopped()
         super.onDestroy()
     }
 

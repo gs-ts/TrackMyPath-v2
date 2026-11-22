@@ -4,25 +4,19 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import gts.trackmypath.ui.service.LocationServiceController
-import gts.trackmypath.ui.service.LocationServiceControllerImpl
-import gts.trackmypath.ui.service.LocationServiceManager
-import gts.trackmypath.ui.service.LocationServiceStateHolder
-import gts.trackmypath.ui.service.LocationServiceStateHolderImpl
+import gts.trackmypath.domain.tracking.RouteTracker
+import gts.trackmypath.tracking.LocationServiceController
+import gts.trackmypath.tracking.LocationServiceControllerImpl
+import gts.trackmypath.tracking.ServiceRouteTracker
 
 @Module
 @InstallIn(SingletonComponent::class)
 interface LocationServiceModule {
 
     @Binds
-    fun bindLocationServiceStateHolder(
-        locationServiceStateHolderImpl: LocationServiceStateHolderImpl
-    ): LocationServiceStateHolder
-
-    @Binds
-    fun bindLocationServiceManager(
-        locationServiceStateHolderImpl: LocationServiceStateHolderImpl
-    ): LocationServiceManager
+    fun bindRouteTracker(
+        serviceRouteTracker: ServiceRouteTracker
+    ): RouteTracker
 
     @Binds
     fun bindLocationServiceController(

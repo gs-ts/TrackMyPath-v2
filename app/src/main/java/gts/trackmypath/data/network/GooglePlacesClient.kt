@@ -13,10 +13,8 @@ import com.google.android.libraries.places.api.net.kotlin.awaitFetchResolvedPhot
 import com.google.android.libraries.places.api.net.kotlin.awaitSearchNearby
 import gts.trackmypath.di.IoDispatcher
 import gts.trackmypath.domain.PlaceIdInvalidException
-import gts.trackmypath.domain.filters.FilterPreferencesDataStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.net.URI
 import java.net.URISyntaxException
@@ -25,10 +23,10 @@ import javax.inject.Inject
 interface GooglePlacesClient {
 
     /**
-     * Searches for nearby places within a default radius of the given [latLng],
-     * filtered by the user's preferred place types.
+     * Searches for nearby places of the given [placeTypes] (Places API types, such as "museum")
+     * within a default radius of [latLng].
      */
-    suspend fun searchNearbyPlaces(latLng: LatLng): List<Place>
+    suspend fun searchNearbyPlaces(latLng: LatLng, placeTypes: List<String>): List<Place>
 
     /**
      * Fetches a signed, temporary photo URI for the first photo in the provided list.
@@ -45,11 +43,10 @@ interface GooglePlacesClient {
 
 class GooglePlacesClientImpl @Inject constructor(
     private val placesClient: PlacesClient,
-    private val filterPreferencesDataStore: FilterPreferencesDataStore,
     @param:IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : GooglePlacesClient {
 
-    override suspend fun searchNearbyPlaces(latLng: LatLng): List<Place> {
+    override suspend fun searchNearbyPlaces(latLng: LatLng, placeTypes: List<String>): List<Place> {
         val locationRestriction = CircularBounds.newInstance(latLng, DEFAULT_RADIUS_METERS)
 
         val placeFields = listOf(
@@ -59,18 +56,13 @@ class GooglePlacesClientImpl @Inject constructor(
             Place.Field.GOOGLE_MAPS_URI
         )
 
-        val placeFilters = filterPreferencesDataStore.placeFilters.first()
-        val includedTypes = placeFilters.flatMap { placeFilter ->
-            placeFilter.types
-        }
-
         return try {
             withContext(context = ioDispatcher) {
                 return@withContext placesClient.awaitSearchNearby(
                     locationRestriction = locationRestriction,
                     placeFields = placeFields
                 ) {
-                    setIncludedTypes(includedTypes)
+                    setIncludedTypes(placeTypes)
                 }.places
             }
         } catch (cancellationException: CancellationException) {

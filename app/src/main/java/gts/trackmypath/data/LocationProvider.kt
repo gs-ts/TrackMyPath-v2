@@ -2,7 +2,6 @@ package gts.trackmypath.data
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.location.Location
 import android.util.Log
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -12,6 +11,9 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import dagger.hilt.android.qualifiers.ApplicationContext
 import gts.trackmypath.di.ApplicationScope
+import gts.trackmypath.domain.Coordinates
+import gts.trackmypath.domain.LocationUnavailableException
+import gts.trackmypath.domain.tracking.LocationSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
@@ -31,7 +33,7 @@ import javax.inject.Singleton
 class LocationProvider @Inject constructor(
     @ApplicationContext applicationContext: Context,
     @ApplicationScope applicationScope: CoroutineScope
-) {
+) : LocationSource {
 
     init {
         Log.d("LocationProvider", "Init $this")
@@ -54,7 +56,7 @@ class LocationProvider @Inject constructor(
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let {
                     Log.d("LocationProvider", "onLocationResult: ${it.latitude}, ${it.longitude}")
-                    trySend(it)
+                    trySend(Coordinates(latitude = it.latitude, longitude = it.longitude))
                 }
             }
         }
@@ -68,7 +70,7 @@ class LocationProvider @Inject constructor(
             locationCallback
         ).addOnFailureListener { exception ->
             Log.e("LocationProvider", "requestLocationUpdates failed: $exception")
-            // Close the Flow with the exception: shareAsResultsIn delivers it to collectors as a failure.
+            // Close the flow with the exception: collectors of locations get a LocationUnavailableException.
             close(exception)
         }
 
@@ -78,12 +80,11 @@ class LocationProvider @Inject constructor(
         }
     }.shareAsResultsIn(scope = applicationScope)
 
-    /**
-     * Emits a [Result.success] for each new location. If location updates can't be started
-     * (e.g. Google Play services is missing, disabled or outdated), it emits one [Result.failure]
-     * and requests location updates again only when a new collector arrives. It never retries on its own.
-     */
-    fun locationFlow(): Flow<Result<Location>> = locationUpdates
+    // shareIn can't pass an upstream failure on to collectors, so it's shared as a value and thrown again here.
+    // Declared after locationUpdates, because property initializers run in order.
+    override val locations: Flow<Coordinates> = locationUpdates.map { location ->
+        location.getOrElse { exception -> throw LocationUnavailableException(cause = exception) }
+    }
 
     companion object {
         // Updates closer than this to the last delivered location are dropped (e.g. while standing still),

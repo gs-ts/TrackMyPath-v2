@@ -29,11 +29,7 @@ import com.google.android.libraries.places.api.net.zzao
 import com.google.android.libraries.places.internal.zzqs
 import com.google.android.libraries.places.api.net.PlacesStatusCodes
 import gts.trackmypath.domain.PlaceIdInvalidException
-import gts.trackmypath.domain.filters.FilterPreferencesDataStore
-import gts.trackmypath.domain.filters.PlaceFilter
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
@@ -46,17 +42,14 @@ import kotlin.test.assertTrue
 class GooglePlacesClientTest {
 
     private lateinit var placesClientFake: PlacesClientFake
-    private lateinit var filterPreferencesDataStoreFake: FilterPreferencesDataStoreFake
     private lateinit var googlePlacesClient: GooglePlacesClientImpl
     private val testDispatcher = StandardTestDispatcher()
 
     @BeforeTest
     fun setup() {
         placesClientFake = PlacesClientFake()
-        filterPreferencesDataStoreFake = FilterPreferencesDataStoreFake()
         googlePlacesClient = GooglePlacesClientImpl(
             placesClient = placesClientFake,
-            filterPreferencesDataStore = filterPreferencesDataStoreFake,
             ioDispatcher = testDispatcher
         )
     }
@@ -66,19 +59,20 @@ class GooglePlacesClientTest {
         val latLng = LatLng(37.7749, -122.4194)
         val mockPlace = Place.builder().setId("place_101").build()
         placesClientFake.searchNearbyResponse = SearchNearbyResponse.newInstance(listOf(mockPlace))
-        filterPreferencesDataStoreFake.emitFilters(setOf(PlaceFilter.SHOPPING, PlaceFilter.CULTURE))
+        val placeTypes = listOf("museum", "shopping_mall")
 
-        val result = googlePlacesClient.searchNearbyPlaces(latLng)
+        val result = googlePlacesClient.searchNearbyPlaces(latLng, placeTypes)
 
         assertEquals(1, result.size)
         assertEquals("place_101", result[0].id)
-        assertNotNull(placesClientFake.lastSearchNearbyRequest)
+        val request = assertNotNull(placesClientFake.lastSearchNearbyRequest)
+        assertEquals(expected = placeTypes, actual = request.includedTypes)
     }
 
     @Test
     fun `searchNearbyPlaces returns empty list on ApiException`() = runTest(testDispatcher) {
         placesClientFake.searchNearbyException = ApiException(Status.RESULT_INTERNAL_ERROR)
-        val result = googlePlacesClient.searchNearbyPlaces(LatLng(0.0, 0.0))
+        val result = googlePlacesClient.searchNearbyPlaces(LatLng(0.0, 0.0), placeTypes = emptyList())
         assertTrue(result.isEmpty())
     }
 
@@ -86,7 +80,7 @@ class GooglePlacesClientTest {
     fun `searchNearbyPlaces rethrows CancellationException`() = runTest(testDispatcher) {
         placesClientFake.searchNearbyException = CancellationException("Cancelled")
         assertFailsWith<CancellationException> {
-            googlePlacesClient.searchNearbyPlaces(LatLng(0.0, 0.0))
+            googlePlacesClient.searchNearbyPlaces(LatLng(0.0, 0.0), placeTypes = emptyList())
         }
     }
 
@@ -114,13 +108,6 @@ class GooglePlacesClientTest {
         assertFailsWith<PlaceIdInvalidException> {
             googlePlacesClient.fetchPhotoUriByPlaceId(placeId)
         }
-    }
-
-    private class FilterPreferencesDataStoreFake : FilterPreferencesDataStore {
-        private val _filters = MutableStateFlow<Set<PlaceFilter>>(emptySet())
-        override val placeFilters: Flow<Set<PlaceFilter>> = _filters
-        override suspend fun setPlaceFilters(filters: Set<PlaceFilter>) { _filters.value = filters }
-        fun emitFilters(filters: Set<PlaceFilter>) { _filters.value = filters }
     }
 
     private class PlacesClientFake : PlacesClient {
