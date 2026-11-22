@@ -8,7 +8,7 @@ interface RouteRepository {
     // called when the user clicks "Play" and returns the id of the route
     suspend fun startRoute(): RouteId
 
-    // called when the user clicks "Stop": the route is kept and shown in Past Routes, with or without a name
+    // called when the user clicks "Stop": the route is kept and shown in Past Routes, with or without a name.
     suspend fun finishRoute(
         routeId: RouteId,
         finishedAt: Instant,
