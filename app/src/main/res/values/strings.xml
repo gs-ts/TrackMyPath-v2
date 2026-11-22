@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Track My Path v2</string>
+    <!-- Title of a route the user didn't name. %1$s is the day the route started, for example "Nov 18, 2026". -->
+    <string name="route_fallback_title">Route of %1$s</string>
+    <!-- %1$s is the day the route started, in the short format, for example "11/18/26". -->
+    <string name="route_date">Date: %1$s</string>
+    <!-- Button in the dialog shown after the user stops tracking: deletes the route and its photos. -->
+    <string name="name_route_dialog_discard">Discard</string>
+    <!-- Warning in the dialog shown after the user stops tracking, explaining the Discard button. -->
+    <string name="name_route_dialog_discard_warning">Discard deletes this route and its photos.</string>
 </resources>
