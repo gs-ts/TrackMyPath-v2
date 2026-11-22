@@ -128,7 +128,8 @@ private fun ActivePathContent(
             routeName = state.routeNameInput,
             onRouteNameChange = { onAction(ActivePathViewModel.Action.OnRouteNameChange(routeName = it)) },
             onConfirmClick = { onAction(ActivePathViewModel.Action.OnConfirmNameRouteDialogClick) },
-            onDismissClick = { onAction(ActivePathViewModel.Action.OnDismissNameRouteDialogClick) }
+            onDismissClick = null, // Back and a tap outside do nothing, so the user must name the route or discard it.
+            onDiscardClick = { onAction(ActivePathViewModel.Action.OnDiscardRouteClick) },
         )
     }
 

@@ -8,8 +8,10 @@ import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.FinishRouteUseCase
 import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataContract
+import gts.trackmypath.domain.route.RenameRouteUseCase
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.StartRouteUseCase
+import gts.trackmypath.domain.route.normalizeRouteName
 import gts.trackmypath.ui.service.LocationServiceManager
 import kotlinx.collections.immutable.PersistentList
 import kotlinx.collections.immutable.persistentListOf
@@ -28,6 +30,7 @@ class ActivePathViewModel @Inject constructor(
     private val locationServiceManager: LocationServiceManager,
     private val startRouteUseCase: StartRouteUseCase,
     private val finishRouteUseCase: FinishRouteUseCase,
+    private val renameRouteUseCase: RenameRouteUseCase,
     private val deleteRouteWithPhotoMetadataUseCase: DeleteRouteWithPhotoMetadataUseCase,
     private val observeRouteWithPhotoMetadataUseCase: ObserveRouteWithPhotoMetadataContract
 ) : ViewModel() {
@@ -49,7 +52,7 @@ class ActivePathViewModel @Inject constructor(
             Action.OnClosePlaceFilterBottomSheet -> onClosePlaceFilterBottomSheet()
             is Action.OnRouteNameChange -> onRouteNameChange(action.routeName)
             Action.OnConfirmNameRouteDialogClick -> onConfirmNameRouteDialogClick()
-            Action.OnDismissNameRouteDialogClick -> onDismissNameRouteDialogClick()
+            Action.OnDiscardRouteClick -> onDiscardRouteClick()
             Action.HideSnackbarRouteSavedConfirmation -> hideSnackbarRouteSavedConfirmation()
         }
     }
@@ -66,8 +69,14 @@ class ActivePathViewModel @Inject constructor(
 
     fun onStopTrackPathClick() {
         locationServiceManager.stopTracking()
+        val routeId = state.value.ongoingRouteId ?: return
         state.update { state ->
             state.copy(shouldShowNameRouteDialog = true)
+        }
+        // Finish the route before the user names it, so it's kept even if the app is closed
+        // or killed while the dialog is open.
+        viewModelScope.launch {
+            finishRouteUseCase(routeId = routeId)
         }
     }
 
@@ -86,44 +95,29 @@ class ActivePathViewModel @Inject constructor(
     }
 
     fun onConfirmNameRouteDialogClick() {
+        // The Confirm button is enabled only for a valid name.
+        val routeName = normalizeRouteName(state.value.routeNameInput) ?: return
         val routeId = state.value.ongoingRouteId
-        val routeName = state.value.routeNameInput
         if (routeId != null) {
             viewModelScope.launch {
-                finishRouteUseCase(
-                    routeId = routeId,
-                    displayName = routeName
-                )
+                renameRouteUseCase(routeId = routeId, name = routeName)
             }
         }
 
         state.update { state ->
-            state.copy(
-                ongoingRouteId = null,
-                shouldShowNameRouteDialog = false,
-                routeNameInput = "",
-                photos = persistentListOf(), // clear the photo stream
-                shouldShowSnackbarRouteSavedConfirmation = true
-            )
+            state.withNameRouteDialogClosed().copy(shouldShowSnackbarRouteSavedConfirmation = true)
         }
     }
 
-    fun onDismissNameRouteDialogClick() {
-        viewModelScope.launch {
-            val routeId = state.value.ongoingRouteId
-            if (routeId != null) {
+    private fun onDiscardRouteClick() {
+        val routeId = state.value.ongoingRouteId
+        if (routeId != null) {
+            viewModelScope.launch {
                 deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
             }
-
-            state.update { state ->
-                state.copy(
-                    ongoingRouteId = null,
-                    shouldShowNameRouteDialog = false,
-                    routeNameInput = "",
-                    photos = persistentListOf() // clear the photo stream
-                )
-            }
         }
+
+        state.update { state -> state.withNameRouteDialogClosed() }
     }
 
     fun hideSnackbarRouteSavedConfirmation() {
@@ -151,16 +145,11 @@ class ActivePathViewModel @Inject constructor(
                         state.update { state ->
                             state.copy(isLocationServiceRunning = false)
                         }
-                        stopLocationUpdates()
+                        ongoingRoutePhotosJob?.cancel()
+                        ongoingRoutePhotosJob = null
                     }
                 }
         }
-    }
-
-    private fun stopLocationUpdates() {
-        Log.d("ActivePathViewModel", "user clicked stop location updates")
-        ongoingRoutePhotosJob?.cancel()
-        ongoingRoutePhotosJob = null
     }
 
     private fun observeOngoingRoutePhotos() {
@@ -207,8 +196,15 @@ class ActivePathViewModel @Inject constructor(
 
         data object OnConfirmNameRouteDialogClick : Action
 
-        data object OnDismissNameRouteDialogClick : Action
+        data object OnDiscardRouteClick : Action
 
         data object HideSnackbarRouteSavedConfirmation : Action
     }
 }
+
+private fun ActivePathViewModel.State.withNameRouteDialogClosed() = copy(
+    ongoingRouteId = null,
+    shouldShowNameRouteDialog = false,
+    routeNameInput = "",
+    photos = persistentListOf() // clear the photo stream
+)
