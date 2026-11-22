@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "fb08d1a37c311f81d5ea4b35d5171dc6",
+    "identityHash": "71e19af4431c4d37f6e3b7de27c89f2e",
     "entities": [
       {
         "tableName": "photo_metadata",
@@ -104,7 +104,7 @@
       },
       {
         "tableName": "routes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`routeId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `route_created_at` INTEGER NOT NULL, `route_display_name` TEXT, `metadata` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`routeId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `route_created_at` INTEGER NOT NULL, `route_finished_at` INTEGER, `route_display_name` TEXT, `metadata` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "routeId",
@@ -117,6 +117,11 @@
             "columnName": "route_created_at",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "finishedAt",
+            "columnName": "route_finished_at",
+            "affinity": "INTEGER"
           },
           {
             "fieldPath": "displayName",
@@ -140,7 +145,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fb08d1a37c311f81d5ea4b35d5171dc6')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '71e19af4431c4d37f6e3b7de27c89f2e')"
     ]
   }
 }

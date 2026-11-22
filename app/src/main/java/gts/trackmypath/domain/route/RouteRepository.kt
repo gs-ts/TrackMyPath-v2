@@ -1,20 +1,22 @@
 package gts.trackmypath.domain.route
 
 import kotlinx.coroutines.flow.Flow
+import kotlin.time.Instant
 
 interface RouteRepository {
 
     // called when the user clicks "Play" and returns the id of the route
     suspend fun startRoute(): RouteId
 
-    // called when the user clicks "Stop" and adds a name and metadata if any
+    // called when the user clicks "Stop": the route is kept and shown in Past Routes, with or without a name
     suspend fun finishRoute(
         routeId: RouteId,
-        displayName: String,
+        finishedAt: Instant,
         metadata: Map<String, String>
     )
 
-    suspend fun renameRoute(routeId: RouteId, newDisplayName: String)
+    // called when the user confirms a name; pass it through normalizeRouteName first
+    suspend fun renameRoute(routeId: RouteId, name: String)
 
     suspend fun deleteRoute(routeId: RouteId)
 

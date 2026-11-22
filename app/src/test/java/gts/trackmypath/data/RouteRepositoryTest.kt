@@ -6,27 +6,37 @@ import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
 import gts.trackmypath.data.repository.RouteRepositoryImpl
 import gts.trackmypath.domain.route.RouteId
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 
 class RouteRepositoryTest {
 
+    private val testScope = TestScope()
     private lateinit var routeDao: RouteDaoFake
     private lateinit var routeRepository: RouteRepositoryImpl
 
     @BeforeTest
     fun setup() {
         routeDao = RouteDaoFake()
-        routeRepository = RouteRepositoryImpl(routeDao)
+        // The test scope stands in for the application scope, so runTest runs its work and waits for it.
+        routeRepository = RouteRepositoryImpl(routeDao, applicationScope = testScope)
     }
 
     @Test
-    fun `startRoute inserts a pending route and returns RouteId`() = runTest {
+    fun `startRoute inserts a pending route and returns RouteId`() = testScope.runTest {
         val routeId = routeRepository.startRoute()
 
         assertEquals(expected = 123L, actual = routeId.id)
@@ -35,31 +45,46 @@ class RouteRepositoryTest {
     }
 
     @Test
-    fun `finishRoute updates route with display name and metadata`() = runTest {
+    fun `finishRoute saves the finish time and metadata`() = testScope.runTest {
         val metadata = mapOf("distance" to "10km")
-        routeRepository.finishRoute(RouteId(1L), "Finished Route", metadata)
+        routeRepository.finishRoute(RouteId(1L), finishedAt = Instant.fromEpochMilliseconds(5_000L), metadata)
 
         assertEquals(expected = 1L, actual = routeDao.finishedRouteId)
-        assertEquals(expected = "Finished Route", actual = routeDao.finishedDisplayName)
+        assertEquals(expected = 5_000L, actual = routeDao.finishedAt)
         assertEquals(expected = metadata, actual = routeDao.finishedMetadata)
     }
 
     @Test
-    fun `renameRoute updates route display name`() = runTest {
-        routeRepository.renameRoute(RouteId(1L), "New Name")
+    fun `finishRoute completes even if the caller is cancelled`() = testScope.runTest {
+        // For example, the user leaves the screen right after tapping Stop, which cancels the ViewModel's scope.
+        val caller = launch {
+            routeRepository.finishRoute(RouteId(1L), finishedAt = Instant.fromEpochMilliseconds(5_000L), emptyMap())
+        }
+        @OptIn(ExperimentalCoroutinesApi::class)
+        runCurrent() // the write has started and is still running in the DAO
+        caller.cancel()
+        @OptIn(ExperimentalCoroutinesApi::class)
+        advanceUntilIdle()
+
+        assertEquals(expected = 1L, actual = routeDao.finishedRouteId)
+    }
+
+    @Test
+    fun `renameRoute updates route display name`() = testScope.runTest {
+        routeRepository.renameRoute(RouteId(1L), name = "New Name")
 
         assertEquals(expected = 1L, actual = routeDao.updatedRouteId)
         assertEquals(expected = "New Name", actual = routeDao.updatedDisplayName)
     }
 
     @Test
-    fun `deleteRoute removes route by id`() = runTest {
+    fun `deleteRoute removes route by id`() = testScope.runTest {
         routeRepository.deleteRoute(RouteId(1L))
     }
 
     @Test
     fun `observeRouteWithPhotoMetadataById filters empty maps and applies distinctUntilChanged`() =
-        runTest {
+        testScope.runTest {
             val routeId = RouteId(1L)
             val routeEntity =
                 RouteEntity(routeId = 1L, displayName = "Test Route", createdAt = 1000L)
@@ -129,7 +154,7 @@ class RouteRepositoryTest {
         }
 
     @Test
-    fun `observeRoutesWithPhotoMetadata maps list of routes correctly`() = runTest {
+    fun `observeRoutesWithPhotoMetadata maps list of routes correctly`() = testScope.runTest {
         val routeEntity1 = RouteEntity(routeId = 1L, displayName = "Route 1", createdAt = 1000L)
         val routeEntity2 = RouteEntity(routeId = 2L, displayName = "Route 2", createdAt = 2000L)
 
@@ -191,7 +216,7 @@ internal class RouteDaoFake : RouteDao {
     // Variables to capture DAO method inputs
     var insertedRoute: RouteEntity? = null
     var finishedRouteId: Long? = null
-    var finishedDisplayName: String? = null
+    var finishedAt: Long? = null
     var finishedMetadata: Map<String, String>? = null
 
     var updatedRouteId: Long? = null
@@ -206,11 +231,12 @@ internal class RouteDaoFake : RouteDao {
 
     override suspend fun finishRouteById(
         routeId: Long,
-        displayName: String,
+        finishedAt: Long,
         metadata: Map<String, String>
     ) {
+        delay(WRITE_DURATION_MILLIS.milliseconds) // a real write takes time, so a test can cancel the caller while it runs
         finishedRouteId = routeId
-        finishedDisplayName = displayName
+        this.finishedAt = finishedAt
         finishedMetadata = metadata
     }
 
@@ -231,5 +257,9 @@ internal class RouteDaoFake : RouteDao {
 
     override fun observeAllRoutesWithPhotos(): Flow<Map<RouteEntity, List<PhotoMetadataEntity>>> {
         return allRoutesStream
+    }
+
+    private companion object {
+        const val WRITE_DURATION_MILLIS = 100L
     }
 }

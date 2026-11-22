@@ -4,9 +4,12 @@ import android.util.Log
 import gts.trackmypath.data.database.photometadata.toDomain
 import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
+import gts.trackmypath.di.ApplicationScope
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.RouteRepository
 import gts.trackmypath.domain.route.RouteWithPhotoMetadata
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -14,11 +17,14 @@ import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
 import kotlin.time.Instant
 
-class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : RouteRepository {
+class RouteRepositoryImpl @Inject constructor(
+    private val routeDao: RouteDao,
+    @param:ApplicationScope private val applicationScope: CoroutineScope
+) : RouteRepository {
 
     override suspend fun startRoute(): RouteId {
         // Create an empty "in-progress" route.
-        // displayName is null, metadata is empty.
+        // finishedAt and displayName are null, metadata is empty.
         val pendingRoute = RouteEntity(
             displayName = null,
             metadata = emptyMap()
@@ -32,23 +38,28 @@ class RouteRepositoryImpl @Inject constructor(private val routeDao: RouteDao) : 
 
     override suspend fun finishRoute(
         routeId: RouteId,
-        displayName: String,
+        finishedAt: Instant,
         metadata: Map<String, String>
     ) {
-        Log.d("RouteRepository", "finishRoute with routeId ${routeId.id} and displayName $displayName")
-        routeDao.finishRouteById(
-            routeId = routeId.id,
-            displayName = displayName,
-            metadata = metadata
-        )
+        Log.d("RouteRepository", "finishRoute with routeId ${routeId.id}")
+        // Runs in the application scope, so it completes even if the caller is cancelled, for example when
+        // the user leaves the screen right after tapping Stop. Otherwise the route would stay unfinished and
+        // be missing from Past Routes until the next launch recovers it.
+        applicationScope.async {
+            routeDao.finishRouteById(
+                routeId = routeId.id,
+                finishedAt = finishedAt.toEpochMilliseconds(),
+                metadata = metadata
+            )
+        }.await()
     }
 
     override suspend fun renameRoute(
         routeId: RouteId,
-        newDisplayName: String
+        name: String
     ) {
-        Log.d("RouteRepository", "renameRoute with routeId ${routeId.id} and newDisplayName $newDisplayName")
-        routeDao.updateRouteName(routeId = routeId.id, newDisplayName = newDisplayName)
+        Log.d("RouteRepository", "renameRoute with routeId ${routeId.id} and name $name")
+        routeDao.updateRouteName(routeId = routeId.id, newDisplayName = name)
     }
 
     override suspend fun deleteRoute(routeId: RouteId) {
