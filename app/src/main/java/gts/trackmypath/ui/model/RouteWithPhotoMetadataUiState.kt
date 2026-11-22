@@ -7,24 +7,15 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toPersistentMap
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
-import java.util.Locale
-import kotlin.time.toJavaInstant
+import kotlin.time.Instant
 
 data class RouteWithPhotoMetadataUiState(
     val routeId: RouteId,
     val displayName: String?,
-    val createdAt: String,
+    val createdAt: Instant,
     val metadata: ImmutableMap<String, String>,
     val photoMetadata: ImmutableList<PhotoMetadata>
 )
-
-private val localDateFormatter = DateTimeFormatter
-    .ofLocalizedDate(FormatStyle.SHORT)
-    .withLocale(Locale.getDefault()) // TODO
-    .withZone(ZoneId.systemDefault())
 
 fun List<RouteWithPhotoMetadata>.toUiState(): ImmutableList<RouteWithPhotoMetadataUiState> {
 
@@ -36,7 +27,7 @@ fun List<RouteWithPhotoMetadata>.toUiState(): ImmutableList<RouteWithPhotoMetada
 fun RouteWithPhotoMetadata.toUiState() = RouteWithPhotoMetadataUiState(
     routeId = routeId,
     displayName = displayName,
-    createdAt = "Date: ${localDateFormatter.format(createdAt.toJavaInstant())}",
+    createdAt = createdAt,
     metadata = metadata.toPersistentMap(),
     photoMetadata = photoMetadata.toImmutableList()
 )
