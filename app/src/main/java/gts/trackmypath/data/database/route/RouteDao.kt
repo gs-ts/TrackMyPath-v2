@@ -3,6 +3,7 @@ package gts.trackmypath.data.database.route
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -24,6 +25,15 @@ interface RouteDao {
     @Query("DELETE FROM routes WHERE routeId = :routeId")
     suspend fun deleteRouteById(routeId: Long)
 
+    // Why the queries that join routes and photos use @Transaction:
+    // Android reads a result bigger than 2 MB in parts, and runs the query again for each part. Without a
+    // transaction, the data can change between two parts. With one, every part sees the same data.
+    //
+    // Example: Past Routes has 3,000 photos, so Android reads them in two parts. While it reads the first
+    // part, the app deletes the photos of a place Google no longer knows. Android counted the rows before
+    // that, so it later asks for a row that's gone, and the read crashes with "Couldn't read row X, col Y
+    // from CursorWindow". If a route with photos in both parts is renamed at that moment, the list shows it twice.
+    @Transaction
     @Query("""
     SELECT * FROM routes 
     LEFT JOIN photo_metadata ON routes.routeId = photo_metadata.route_id 
@@ -32,6 +42,7 @@ interface RouteDao {
 """)
     fun observeRouteWithPhotosMap(routeId: Long): Flow<Map<RouteEntity, List<PhotoMetadataEntity>>>
 
+    @Transaction
     @Query("""
     SELECT * FROM routes 
     LEFT JOIN photo_metadata ON routes.routeId = photo_metadata.route_id 
