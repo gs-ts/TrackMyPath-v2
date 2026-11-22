@@ -99,11 +99,11 @@ class LocationService : LifecycleService() {
                     .onFailure { Log.e("LocationService", "error fetching photo", it) }
             }
             .catch { exception ->
-                // Location updates can't start (e.g. Google Play services is missing or outdated).
-                // Stop rather than keep a tracking notification that will never produce photos.
-                // onDestroy resets the tracking state, so the UI shows that tracking has stopped.
-                // We don't retry: the user can tap Play again, which requests location updates again.
-                Log.e("LocationService", "Location updates unavailable, stopping tracking", exception)
+                // Location updates can't start (e.g. Google Play services is missing or outdated), or the search
+                // failed unexpectedly (a bug, or the database). Stop rather than keep a tracking notification that
+                // will never produce photos. onDestroy resets the tracking state, so the UI shows that tracking has
+                // stopped. We don't retry: the user can tap Play again, which requests location updates again.
+                Log.e("LocationService", "Finding photos failed, stopping tracking", exception)
                 stopSelf()
             }
             // lifecycleScope is cancelled right after onDestroy, and that stops the location updates.
