@@ -1,5 +1,6 @@
 package gts.trackmypath.ui.pastroutes
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import gts.trackmypath.MainDispatcherRule
 import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
 import gts.trackmypath.domain.route.ObserveAllRoutesWithPhotoMetadataUseCase
@@ -63,25 +64,25 @@ class PastRoutesViewModelTest {
 
         viewModel.onAction(Action.OnRenameRouteClick(RouteId(1)))
         assertTrue(actual = viewModel.state.value.popups.shouldShowRenameRouteDialog)
-        assertEquals(expected = "Morning walk", actual = viewModel.state.value.popups.routeNameInput)
+        assertEquals(expected = "Morning walk", actual = viewModel.routeName.text.toString())
 
-        viewModel.onAction(Action.OnRouteNameChange("  Evening walk "))
+        viewModel.routeName.setTextAndPlaceCursorAtEnd("  Evening walk ")
         viewModel.onAction(Action.OnConfirmNameRouteDialogClick)
 
         assertEquals(expected = "Evening walk", actual = routeRepositoryFake.nameOf(RouteId(1)))
         assertEquals(expected = "Evening walk", actual = viewModel.state.value.routesWithPhotoMetadata[0].displayName)
         assertEquals(expected = PastRoutesViewModel.Popups(), actual = viewModel.state.value.popups)
+        assertEquals(expected = "", actual = viewModel.routeName.text.toString())
     }
 
     @Test
-    fun `typing a name keeps the same routes list, so the list doesn't recompose`() = runTest {
+    fun `opening a dialog keeps the same routes list, so the list doesn't recompose`() = runTest {
         collectState()
-        viewModel.onAction(Action.OnRenameRouteClick(RouteId(2)))
         val routes = viewModel.state.value.routesWithPhotoMetadata
 
-        viewModel.onAction(Action.OnRouteNameChange("Lunch walk"))
+        viewModel.onAction(Action.OnDeleteRouteClick(RouteId(2)))
 
-        assertEquals(expected = "Lunch walk", actual = viewModel.state.value.popups.routeNameInput)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowDeletePastRouteDialog)
         assertSame(expected = routes, actual = viewModel.state.value.routesWithPhotoMetadata)
     }
 
@@ -89,12 +90,13 @@ class PastRoutesViewModelTest {
     fun `dismissing the rename dialog keeps the old name`() = runTest {
         collectState()
         viewModel.onAction(Action.OnRenameRouteClick(RouteId(1)))
-        viewModel.onAction(Action.OnRouteNameChange("Evening walk"))
+        viewModel.routeName.setTextAndPlaceCursorAtEnd("Evening walk")
 
         viewModel.onAction(Action.OnDismissNameRouteDialogClick)
 
         assertEquals(expected = "Morning walk", actual = routeRepositoryFake.nameOf(RouteId(1)))
         assertEquals(expected = PastRoutesViewModel.Popups(), actual = viewModel.state.value.popups)
+        assertEquals(expected = "", actual = viewModel.routeName.text.toString())
     }
 
     @Test

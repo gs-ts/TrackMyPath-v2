@@ -1,5 +1,8 @@
 package gts.trackmypath.ui.pastroutes
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +36,10 @@ class PastRoutesViewModel @Inject constructor(
     // Only user actions change the popups. The routes come from the database.
     private val popups = MutableStateFlow(Popups())
 
-    // Mapped once per database change, not on every popup change (e.g. typing a name),
+    // The name typed in the rename dialog. The text field edits it directly, and Confirm reads it.
+    val routeName = TextFieldState()
+
+    // Mapped once per database change, not on every popup change (e.g. opening a dialog),
     // so the list keeps its instance.
     private val routes: Flow<ImmutableList<RouteWithPhotoMetadataUiState>> =
         observeAllRoutesWithPhotoMetadataUseCase().map { routes -> routes.toUiState() }
@@ -52,7 +58,6 @@ class PastRoutesViewModel @Inject constructor(
     fun onAction(action: Action) {
         when (action) {
             is Action.OnRenameRouteClick -> onRenameRouteClick(action.routeId)
-            is Action.OnRouteNameChange -> onRouteNameChange(action.newName)
             Action.OnConfirmNameRouteDialogClick -> onConfirmNameRouteDialogClick()
             Action.OnDismissNameRouteDialogClick -> onDismissNameRouteDialogClick()
             is Action.OnDeleteRouteClick -> onDeleteRouteClick(action.routeId)
@@ -64,29 +69,25 @@ class PastRoutesViewModel @Inject constructor(
 
     private fun onRenameRouteClick(routeId: RouteId) {
         val currentName = state.value.routesWithPhotoMetadata.find { it.routeId == routeId }?.displayName
-        popups.update { popups ->
-            popups.copy(routeToRename = routeId, routeNameInput = currentName.orEmpty())
-        }
-    }
-
-    private fun onRouteNameChange(newRouteName: String) {
-        popups.update { popups -> popups.copy(routeNameInput = newRouteName) }
+        routeName.setTextAndPlaceCursorAtEnd(currentName.orEmpty())
+        popups.update { popups -> popups.copy(routeToRename = routeId) }
     }
 
     private fun onConfirmNameRouteDialogClick() {
         // The Confirm button is enabled only for a valid name.
-        val routeName = normalizeRouteName(popups.value.routeNameInput) ?: return
+        val name = normalizeRouteName(routeName.text.toString()) ?: return
         val routeId = popups.value.routeToRename
         if (routeId != null) {
             viewModelScope.launch {
-                renameRouteUseCase(routeId = routeId, name = routeName)
+                renameRouteUseCase(routeId = routeId, name = name)
             }
         }
         onDismissNameRouteDialogClick()
     }
 
     private fun onDismissNameRouteDialogClick() {
-        popups.update { popups -> popups.copy(routeToRename = null, routeNameInput = "") }
+        popups.update { popups -> popups.copy(routeToRename = null) }
+        routeName.clearText()
     }
 
     private fun onDeleteRouteClick(routeId: RouteId) {
@@ -121,7 +122,6 @@ class PastRoutesViewModel @Inject constructor(
     data class Popups(
         // Set by Rename in a route's menu. The rename dialog is open while it's set.
         val routeToRename: RouteId? = null,
-        val routeNameInput: String = "",
         // Set by Delete in a route's menu. The delete dialog is open while it's set.
         val routeIdToDelete: RouteId? = null,
         val shouldShowSnackbarRouteDeletedConfirmation: Boolean = false,
@@ -136,8 +136,6 @@ class PastRoutesViewModel @Inject constructor(
 
     sealed interface Action {
         data class OnRenameRouteClick(val routeId: RouteId) : Action
-
-        data class OnRouteNameChange(val newName: String) : Action
 
         data object OnConfirmNameRouteDialogClick : Action
 

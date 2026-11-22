@@ -1,5 +1,6 @@
 package gts.trackmypath.ui.activepath
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import app.cash.turbine.test
 import gts.trackmypath.MainDispatcherRule
 import gts.trackmypath.domain.Coordinates
@@ -166,16 +167,17 @@ class ActivePathViewModelTest {
     }
 
     @Test
-    fun `typing a route name keeps the same photos list`() = runTest {
+    fun `opening the filter sheet keeps the same photos list`() = runTest {
+        // A popup change doesn't restart the database query for the photos.
         val (viewModel, _, fakeRouteRepository) = createViewModel()
         viewModel.onStartTrackPathClick()
         fakeRouteRepository.emitPhotos(RouteId(1), photos)
-        viewModel.onStopTrackPathClick()
-        val photosBeforeTyping = viewModel.state.value.photos
+        val photosBefore = viewModel.state.value.photos
 
-        viewModel.onRouteNameChange(newRouteName = "Acropolis walk")
+        viewModel.onPlaceFilterClick()
 
-        assertSame(expected = photosBeforeTyping, actual = viewModel.state.value.photos)
+        assertTrue(actual = viewModel.state.value.popups.shouldShowPlaceFilterBottomSheet)
+        assertSame(expected = photosBefore, actual = viewModel.state.value.photos)
     }
 
     @Test
@@ -194,21 +196,12 @@ class ActivePathViewModelTest {
     }
 
     @Test
-    fun `onRouteNameChange updates routeNameInput state`() = runTest {
-        val (viewModel, _, _) = createViewModel()
-
-        viewModel.onRouteNameChange(newRouteName = "My Cool Route")
-
-        assertEquals(expected = "My Cool Route", actual = viewModel.state.value.popups.routeNameInput)
-    }
-
-    @Test
     fun `when confirm in NameRouteDialog is clicked then names the route and clears state`() = runTest {
         val (viewModel, _, fakeRouteRepository) = createViewModel()
         viewModel.onStartTrackPathClick()
         fakeRouteRepository.emitPhotos(RouteId(1), photos)
         viewModel.onStopTrackPathClick()
-        viewModel.onRouteNameChange(newRouteName = "  My Cool Route ")
+        viewModel.routeName.setTextAndPlaceCursorAtEnd("  My Cool Route ")
 
         viewModel.onConfirmNameRouteDialogClick()
 
@@ -218,7 +211,7 @@ class ActivePathViewModelTest {
 
         val state = viewModel.state.value
         assertFalse(actual = state.popups.shouldShowNameRouteDialog)
-        assertEquals(expected = "", actual = state.popups.routeNameInput)
+        assertEquals(expected = "", actual = viewModel.routeName.text.toString())
         assertTrue(actual = state.photos.isEmpty())
         assertTrue(actual = state.popups.shouldShowSnackbarRouteSavedConfirmation)
     }
@@ -228,7 +221,7 @@ class ActivePathViewModelTest {
         val (viewModel, _, fakeRouteRepository) = createViewModel()
         viewModel.onStartTrackPathClick()
         viewModel.onStopTrackPathClick()
-        viewModel.onRouteNameChange(newRouteName = "   ")
+        viewModel.routeName.setTextAndPlaceCursorAtEnd("   ")
 
         viewModel.onConfirmNameRouteDialogClick()
 
@@ -242,7 +235,7 @@ class ActivePathViewModelTest {
 
         viewModel.onStartTrackPathClick()
         viewModel.onStopTrackPathClick()
-        viewModel.onRouteNameChange(newRouteName = "My Cool Route")
+        viewModel.routeName.setTextAndPlaceCursorAtEnd("My Cool Route")
         // trigger the action that makes the showSnackbarRouteSavedConfirmation true
         viewModel.onConfirmNameRouteDialogClick()
 
@@ -261,10 +254,12 @@ class ActivePathViewModelTest {
         viewModel.onStartTrackPathClick()
         fakeRouteRepository.emitPhotos(RouteId(1), photos)
         viewModel.onStopTrackPathClick()
+        viewModel.routeName.setTextAndPlaceCursorAtEnd("My Cool Route")
 
         viewModel.onAction(ActivePathViewModel.Action.OnDiscardRouteClick)
 
         assertTrue(actual = fakeRouteRepository.routes.isEmpty())
+        assertEquals(expected = "", actual = viewModel.routeName.text.toString()) // the next route starts empty
 
         val state = viewModel.state.value
         assertFalse(actual = state.popups.shouldShowNameRouteDialog)
@@ -278,7 +273,7 @@ class ActivePathViewModelTest {
         viewModel.onStartTrackPathClick()
         fakeRouteRepository.emitPhotos(RouteId(1), photos)
         viewModel.onStopTrackPathClick()
-        viewModel.onRouteNameChange(newRouteName = "My Cool Route")
+        viewModel.routeName.setTextAndPlaceCursorAtEnd("My Cool Route")
 
         viewModel.state.test {
             assertEquals(expected = photos, actual = awaitItem().photos) // the dialog is open over the photos
