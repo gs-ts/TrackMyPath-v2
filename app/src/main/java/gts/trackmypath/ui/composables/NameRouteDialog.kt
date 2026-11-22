@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,22 +22,39 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import gts.trackmypath.R
+import gts.trackmypath.domain.route.ROUTE_NAME_MAX_LENGTH
+import gts.trackmypath.domain.route.normalizeRouteName
 import gts.trackmypath.ui.theme.TrackMyPathV2Theme
 
+/**
+ * Asks for a route name.
+ *
+ * With [onDismissClick], the dialog shows a Dismiss button, and Back or a tap outside also dismiss it.
+ * Without it, Back and a tap outside do nothing, so the user must choose one of the buttons.
+ * With [onDiscardClick], the dialog shows a Discard button that deletes the route, and a warning that says so.
+ */
 @Composable
 internal fun NameRouteDialog(
     routeName: String,
-    isRenamingState: Boolean = false,
     onRouteNameChange: (String) -> Unit,
     onConfirmClick: () -> Unit,
-    onDismissClick: () -> Unit,
+    onDismissClick: (() -> Unit)?,
+    onDiscardClick: (() -> Unit)? = null,
 ) {
-    Dialog(onDismissRequest = { onDismissClick() }) {
+    Dialog(
+        onDismissRequest = { onDismissClick?.invoke() },
+        properties = DialogProperties(
+            dismissOnBackPress = onDismissClick != null,
+            dismissOnClickOutside = onDismissClick != null,
+        ),
+    ) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(size = 16.dp),
@@ -54,8 +72,8 @@ internal fun NameRouteDialog(
                         .padding(top = 32.dp)
                         .padding(bottom = 16.dp),
                 )
-                if (isRenamingState.not()) {
-                    SaveRouteWarning()
+                if (onDiscardClick != null) {
+                    DiscardRouteWarning()
                 }
                 OutlinedTextField(
                     modifier = Modifier
@@ -63,7 +81,7 @@ internal fun NameRouteDialog(
                     singleLine = true,
                     value = routeName,
                     onValueChange = { newValue ->
-                        if (newValue.length <= 50) { // 50 chars limit
+                        if (newValue.length <= ROUTE_NAME_MAX_LENGTH) {
                             onRouteNameChange(newValue)
                         }
                     },
@@ -75,16 +93,27 @@ internal fun NameRouteDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
                 ) {
-                    TextButton(
-                        onClick = { onDismissClick() },
-                        modifier = Modifier.padding(8.dp),
-                    ) {
-                        Text("Dismiss")
+                    if (onDiscardClick != null) {
+                        TextButton(
+                            onClick = onDiscardClick,
+                            modifier = Modifier.padding(8.dp),
+                            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        ) {
+                            Text(stringResource(R.string.name_route_dialog_discard))
+                        }
+                    }
+                    if (onDismissClick != null) {
+                        TextButton(
+                            onClick = onDismissClick,
+                            modifier = Modifier.padding(8.dp),
+                        ) {
+                            Text("Dismiss")
+                        }
                     }
                     TextButton(
                         onClick = { onConfirmClick() },
                         modifier = Modifier.padding(8.dp),
-                        enabled = routeName.isNotBlank(),
+                        enabled = normalizeRouteName(routeName) != null,
                     ) {
                         Text("Confirm")
                     }
@@ -95,7 +124,7 @@ internal fun NameRouteDialog(
 }
 
 @Composable
-private fun SaveRouteWarning() {
+private fun DiscardRouteWarning() {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(bottom = 10.dp)
@@ -109,7 +138,7 @@ private fun SaveRouteWarning() {
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             style = MaterialTheme.typography.labelMedium,
-            text = "Dismiss will not save your route.",
+            text = stringResource(R.string.name_route_dialog_discard_warning),
             color = MaterialTheme.colorScheme.outline
         )
     }
@@ -124,7 +153,8 @@ private fun NameRouteDialogPreview() {
                 routeName = "my route",
                 onRouteNameChange = {},
                 onConfirmClick = {},
-                onDismissClick = {},
+                onDismissClick = null,
+                onDiscardClick = {},
             )
         }
     }
