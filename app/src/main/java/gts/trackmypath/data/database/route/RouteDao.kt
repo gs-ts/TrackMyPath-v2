@@ -13,7 +13,11 @@ interface RouteDao {
     @Insert
     suspend fun insertRoute(route: RouteEntity): Long // returns the auto-generated routeId
 
-    @Query("UPDATE routes SET route_finished_at = :finishedAt, metadata = :metadata WHERE routeId = :routeId")
+    // A route is finished once: finishing it again, e.g. after a second tap on Stop, changes nothing.
+    @Query("""
+    UPDATE routes SET route_finished_at = :finishedAt, metadata = :metadata
+    WHERE routeId = :routeId AND route_finished_at IS NULL
+""")
     suspend fun finishRouteById(routeId: Long, finishedAt: Long, metadata: Map<String, String>)
 
     @Query("SELECT * FROM routes WHERE routeId = :routeId")
