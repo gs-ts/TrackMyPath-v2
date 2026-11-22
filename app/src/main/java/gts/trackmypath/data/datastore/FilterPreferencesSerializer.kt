@@ -10,9 +10,13 @@ import java.io.OutputStream
 object FilterPreferencesSerializer : Serializer<FilterPreferences> {
     override val defaultValue: FilterPreferences = FilterPreferences()
 
+    // Skips fields this version doesn't know, so removing or renaming a field later
+    // doesn't make saved files unreadable.
+    private val json = Json { ignoreUnknownKeys = true }
+
     override suspend fun readFrom(input: InputStream): FilterPreferences {
         try {
-            return Json.decodeFromString(
+            return json.decodeFromString(
                 input.readBytes().decodeToString()
             )
         } catch (exception: SerializationException) {
@@ -21,6 +25,6 @@ object FilterPreferencesSerializer : Serializer<FilterPreferences> {
     }
 
     override suspend fun writeTo(t: FilterPreferences, output: OutputStream) {
-        output.write(Json.encodeToString(value = t).encodeToByteArray())
+        output.write(json.encodeToString(value = t).encodeToByteArray())
     }
 }
