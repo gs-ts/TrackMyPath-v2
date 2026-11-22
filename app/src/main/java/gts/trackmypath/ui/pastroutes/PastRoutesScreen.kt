@@ -300,7 +300,7 @@ private fun PhotoPreview(
 ) {
     AsyncImage(
         model = photo,
-        contentDescription = photo.generativeSummary,
+        contentDescription = photo.displayName,
         modifier = modifier
             .aspectRatio(1f)
             .clip(shape = RoundedCornerShape(size = 8.dp)),

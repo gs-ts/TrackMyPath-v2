@@ -55,7 +55,8 @@ fun PhotoCard(
         ) {
             AsyncImage(
                 model = photo,
-                contentDescription = photo.generativeSummary,
+                // The place name is the text right below, so a description would make TalkBack read it twice.
+                contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
