@@ -47,6 +47,9 @@ class LocationService : Service() {
 
     private var locationUpdatesJob: Job? = null
 
+    // The route this service tracks, set by the first start command.
+    private var trackedRouteId: Long? = null
+
     override fun onCreate() {
         super.onCreate()
         Log.d("LocationService", "onCreate $this")
@@ -64,36 +67,44 @@ class LocationService : Service() {
             return START_NOT_STICKY
         }
 
-        val routeId = intent?.getLongExtra(EXTRA_ROUTE_ID, -1L)
-        if (routeId != null && routeId != -1L) {
-            startForegroundLocationService(routeId = routeId)
-            locationServiceStateHolder.setServiceRunning(
-                isRunning = true,
-                activeRouteId = RouteId(routeId)
-            )
-        } else {
-            stopSelf() // kill the service if it was started without a valid routeId
+        val routeId = intent?.getLongExtra(EXTRA_ROUTE_ID, -1L) ?: -1L
+        when {
+            routeId == -1L -> stopSelf() // kill the service if it was started without a valid routeId
+            startForegroundLocationService() -> trackRoute(requestedRouteId = routeId)
+            else -> {
+                // Android didn't let the service run in the foreground, so nothing is tracked. Say so, and stop.
+                locationServiceStateHolder.setServiceRunning(isRunning = false)
+                stopSelf()
+            }
         }
 
         return START_STICKY
     }
 
+    // Returns false if Android refused to make this a foreground service.
     @Suppress("TooGenericExceptionCaught")
-    private fun startForegroundLocationService(routeId: Long) {
-        try {
+    private fun startForegroundLocationService(): Boolean {
+        return try {
             startForeground(
                 NOTIFICATION_ID,
                 getServiceNotification(),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             )
-
-            if (locationUpdatesJob == null) {
-                collectLocationUpdates(routeId = routeId)
-            }
+            true
         } catch (exception: Exception) {
             Log.e("LocationService", "Failed to start foreground service", exception)
-            locationServiceStateHolder.setServiceRunning(isRunning = false) // Reset state if it crashes
+            false
         }
+    }
+
+    // One route per tracking session. A second start command, for example from a quick double tap on Start,
+    // keeps tracking the first route, so the photos and the screen stay on the same route.
+    private fun trackRoute(requestedRouteId: Long) {
+        val routeId = trackedRouteId ?: requestedRouteId.also { newRouteId ->
+            trackedRouteId = newRouteId
+            collectLocationUpdates(routeId = newRouteId)
+        }
+        locationServiceStateHolder.setServiceRunning(isRunning = true, activeRouteId = RouteId(routeId))
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
