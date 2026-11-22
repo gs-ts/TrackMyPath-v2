@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-class FilterPreferencesDataStorImpl @Inject constructor(
+class FilterPreferencesDataStoreImpl @Inject constructor(
     private val dataStore: DataStore<FilterPreferences>
 ) : FilterPreferencesDataStore {
 

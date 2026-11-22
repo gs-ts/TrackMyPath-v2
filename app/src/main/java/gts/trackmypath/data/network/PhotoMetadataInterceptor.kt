@@ -7,7 +7,7 @@ import coil3.request.ErrorResult
 import coil3.request.ImageResult
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
-import jakarta.inject.Inject
+import javax.inject.Inject
 
 class PhotoMetadataInterceptor @Inject constructor(
     private val repository: PhotoMetadataRepository

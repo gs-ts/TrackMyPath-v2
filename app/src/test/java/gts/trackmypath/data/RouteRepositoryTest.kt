@@ -80,6 +80,8 @@ class RouteRepositoryTest {
     @Test
     fun `deleteRoute removes route by id`() = testScope.runTest {
         routeRepository.deleteRoute(RouteId(1L))
+
+        assertEquals(expected = 1L, actual = routeDao.deletedRouteId)
     }
 
     @Test
