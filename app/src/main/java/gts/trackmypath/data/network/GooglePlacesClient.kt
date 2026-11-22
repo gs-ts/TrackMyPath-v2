@@ -56,10 +56,7 @@ class GooglePlacesClientImpl @Inject constructor(
             Place.Field.ID,
             Place.Field.DISPLAY_NAME,
             Place.Field.PHOTO_METADATAS,
-            Place.Field.GOOGLE_MAPS_URI,
-            Place.Field.GENERATIVE_SUMMARY,
-            Place.Field.NEIGHBORHOOD_SUMMARY,
-            Place.Field.EDITORIAL_SUMMARY
+            Place.Field.GOOGLE_MAPS_URI
         )
 
         val placeFilters = filterPreferencesDataStore.placeFilters.first()
