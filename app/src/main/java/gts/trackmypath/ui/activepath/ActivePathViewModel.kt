@@ -40,6 +40,9 @@ class ActivePathViewModel @Inject constructor(
 
     private var ongoingRoutePhotosJob: Job? = null
 
+    // True from a tap on Start until the new route is created and handed to the service.
+    private var isStartingRoute = false
+
     init {
         observeLocationServiceEvents()
     }
@@ -58,12 +61,16 @@ class ActivePathViewModel @Inject constructor(
     }
 
     fun onStartTrackPathClick() {
+        // A second tap while the first one is still creating the route would start a second route.
+        if (isStartingRoute || state.value.isTracking) return
+        isStartingRoute = true
         viewModelScope.launch {
-            val newRouteId = startRouteUseCase()
-            state.update { state ->
-                state.copy(ongoingRouteId = newRouteId)
+            try {
+                // ongoingRouteId isn't set here: it comes from the service, which reports the route it tracks.
+                locationServiceManager.startTracking(routeId = startRouteUseCase())
+            } finally {
+                isStartingRoute = false
             }
-            locationServiceManager.startTracking(routeId = newRouteId)
         }
     }
 

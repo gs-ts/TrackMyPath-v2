@@ -13,6 +13,7 @@ import gts.trackmypath.domain.route.StartRouteUseCase
 import gts.trackmypath.ui.service.LocationServiceManager
 import gts.trackmypath.ui.service.TrackingState
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +56,44 @@ class ActivePathViewModelTest {
         val startedRouteId = fakeRouteRepository.routes.keys.single()
         assertEquals(expected = startedRouteId, actual = fakeLocationService.lastStartedRouteId)
         assertEquals(expected = startedRouteId, actual = viewModel.state.value.ongoingRouteId)
+    }
+
+    @Test
+    fun `a second tap on start while the route is being created does nothing`() = runTest {
+        val routeCreation = CompletableDeferred<Unit>()
+        val (viewModel, fakeLocationService, fakeRouteRepository) = createViewModel(
+            routeRepositoryFake = RouteRepositoryFake(beforeStartRoute = { routeCreation.await() })
+        )
+
+        viewModel.onStartTrackPathClick()
+        viewModel.onStartTrackPathClick() // the first tap is still creating the route
+        routeCreation.complete(Unit)
+
+        assertEquals(expected = setOf(RouteId(1)), actual = fakeRouteRepository.routes.keys)
+        assertEquals(expected = listOf(RouteId(1)), actual = fakeLocationService.startedRouteIds)
+    }
+
+    @Test
+    fun `a tap on start while a route is tracked does nothing`() = runTest {
+        val (viewModel, fakeLocationService, fakeRouteRepository) = createViewModel()
+        viewModel.onStartTrackPathClick()
+
+        viewModel.onStartTrackPathClick()
+
+        assertEquals(expected = setOf(RouteId(1)), actual = fakeRouteRepository.routes.keys)
+        assertEquals(expected = listOf(RouteId(1)), actual = fakeLocationService.startedRouteIds)
+    }
+
+    @Test
+    fun `start works again after the previous route is done`() = runTest {
+        val (viewModel, fakeLocationService, _) = createViewModel()
+        viewModel.onStartTrackPathClick()
+        viewModel.onStopTrackPathClick()
+        viewModel.onAction(ActivePathViewModel.Action.OnDiscardRouteClick)
+
+        viewModel.onStartTrackPathClick()
+
+        assertEquals(expected = listOf(RouteId(1), RouteId(2)), actual = fakeLocationService.startedRouteIds)
     }
 
     @Test
@@ -197,9 +236,10 @@ class ActivePathViewModelTest {
 
     // --- Helper classes and setup ---
 
-    private fun createViewModel(): Triple<ActivePathViewModel, LocationServiceManagerFake, RouteRepositoryFake> {
+    private fun createViewModel(
+        routeRepositoryFake: RouteRepositoryFake = RouteRepositoryFake()
+    ): Triple<ActivePathViewModel, LocationServiceManagerFake, RouteRepositoryFake> {
         val locationServiceManagerFake = LocationServiceManagerFake()
-        val routeRepositoryFake = RouteRepositoryFake()
 
         val activePathViewModel = ActivePathViewModel(
             locationServiceManager = locationServiceManagerFake,
@@ -221,11 +261,12 @@ class ActivePathViewModelTest {
         private val _trackingState = MutableStateFlow(TrackingState())
         override val trackingState: StateFlow<TrackingState> = _trackingState.asStateFlow()
 
-        var lastStartedRouteId: RouteId? = null
+        val startedRouteIds = mutableListOf<RouteId>()
+        val lastStartedRouteId: RouteId? get() = startedRouteIds.lastOrNull()
         var stopTrackingCalled = false
 
         override fun startTracking(routeId: RouteId) {
-            lastStartedRouteId = routeId
+            startedRouteIds += routeId
             _trackingState.update { it.copy(isRunning = true, activeRouteId = routeId) }
         }
 
@@ -240,7 +281,10 @@ class ActivePathViewModelTest {
     }
 
     // Keeps routes in memory, so tests can check what was saved.
-    class RouteRepositoryFake : RouteRepository {
+    class RouteRepositoryFake(
+        // Runs before a route is created, so a test can keep the creation in progress.
+        private val beforeStartRoute: suspend () -> Unit = {}
+    ) : RouteRepository {
 
         data class StoredRoute(val name: String? = null, val finishedAt: Instant? = null)
 
@@ -248,6 +292,7 @@ class ActivePathViewModelTest {
         private var lastRouteId = 0L
 
         override suspend fun startRoute(): RouteId {
+            beforeStartRoute()
             val routeId = RouteId(++lastRouteId)
             routes[routeId] = StoredRoute()
             return routeId
