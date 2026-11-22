@@ -12,7 +12,7 @@ Next version of the: https://github.com/gs-ts/TrackMyPath
 
 This application tracks your path and creates a continuous stream of photos 📸 by fetching images based on your real-time location 📍.
 
-You can trigger the Start button to begin tracking your journey and tap it again to stop. While tracking, the app fetches a photo from the Google Places API when tracking starts and then each time the user has moved at least 30 meters (the location is checked about every 30 seconds). Once finished, you can save the route by giving it a name. All of these saved journeys are easily accessible later from the Past Routes screen 🗺️.
+You can trigger the Start button to begin tracking your journey and tap it again to stop. While tracking, the app fetches a photo from the Google Places API when tracking starts and then each time the user has moved at least 30 meters (the location is checked about every 30 seconds). When you stop, the route is saved, and you're asked to name it or discard it. All of these saved journeys are easily accessible later from the Past Routes screen 🗺️, where you can also rename them. If the app closes before you name a route, it's kept with a title like "Route of Nov 18, 2026". If the app closes unexpectedly while you're tracking, the route is kept if it has at least one photo.
 
 To customize the photo stream, you can apply place filters that determine what the app fetches while tracking. For example, selecting Culture 🏛️, Food & Drinks ☕, or Entertainment 🎢 will influence the photos shown along your route. Filters can be added or removed both before and during tracking.
 
@@ -47,7 +47,7 @@ Inside the MVVM setup, UDF is heavily applied.
 Instead of relying on mock libraries (like Mockito/MockK), custom Fake implementations are used for your unit tests.
 - **Observer / Reactive Pattern**: with Kotlin Coroutines and Flows
 - **State-Driven One-Off Events**: Rather than using Channel or SharedFlow to fire one-off UI events (like Snackbars or Dialogs), 
-I model them purely as boolean flags in the UI State (e.g., `showSnackbarRouteSavedConfirmation = true`), 
+I model them purely as boolean flags in the UI State (e.g., `shouldShowSnackbarRouteSavedConfirmation = true`), 
 which the UI consumes and then dispatches an Action to reset back to false. 
 This aligns perfectly with the latest Jetpack Compose best practices.
 - [ViewModels scoped to a composable](https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-apis#vm-api-composable): see `PlaceFilterBottomSheet`
