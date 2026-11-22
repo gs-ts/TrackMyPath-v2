@@ -5,3 +5,5 @@ class PlacesUnavailableException(message: String? = null) : Exception(message)
 class PhotoMetadataUnavailableException(message: String? = null) : Exception(message)
 
 class PlaceIdInvalidException(message: String? = null) : Exception(message)
+
+class LocationUnavailableException(cause: Throwable? = null) : Exception(cause)

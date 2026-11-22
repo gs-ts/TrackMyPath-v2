@@ -2,30 +2,32 @@ package gts.trackmypath.ui.activepath
 
 import app.cash.turbine.test
 import gts.trackmypath.MainDispatcherRule
+import gts.trackmypath.domain.Coordinates
+import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.route.DeleteRouteWithPhotoMetadataUseCase
-import gts.trackmypath.domain.route.FinishRouteUseCase
 import gts.trackmypath.domain.route.ObserveRouteWithPhotoMetadataContract
 import gts.trackmypath.domain.route.RenameRouteUseCase
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.RouteRepository
 import gts.trackmypath.domain.route.RouteWithPhotoMetadata
-import gts.trackmypath.domain.route.StartRouteUseCase
-import gts.trackmypath.ui.service.LocationServiceManager
-import gts.trackmypath.ui.service.TrackingState
-import kotlinx.collections.immutable.persistentListOf
+import gts.trackmypath.domain.tracking.RouteTracker
+import gts.trackmypath.domain.tracking.StartTrackingUseCase
+import gts.trackmypath.domain.tracking.StopTrackingUseCase
+import gts.trackmypath.domain.tracking.TrackingState
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -40,6 +42,8 @@ class ActivePathViewModelTest {
         override fun now(): Instant = now
     }
 
+    private val photos = listOf(photo(id = 1), photo(id = 2))
+
     @Test
     fun `initial state is correct`() = runTest {
         val (viewModel, _, _) = createViewModel()
@@ -48,20 +52,33 @@ class ActivePathViewModelTest {
     }
 
     @Test
-    fun `when start button is clicked then updates state and starts tracking`() = runTest {
-        val (viewModel, fakeLocationService, fakeRouteRepository) = createViewModel()
+    fun `when the screen opens while a route is tracked then shows that route`() = runTest {
+        // e.g. the user reopens the app from the tracking notification
+        val (viewModel, _, _) = createViewModel(
+            routeTrackerFake = RouteTrackerFake(initialState = TrackingState.Tracking(RouteId(5))),
+            routeRepositoryFake = RouteRepositoryFake().apply { emitPhotos(RouteId(5), photos) }
+        )
+
+        assertTrue(actual = viewModel.state.value.isTracking)
+        assertEquals(expected = photos, actual = viewModel.state.value.photos)
+    }
+
+    @Test
+    fun `when start button is clicked then tracks a new route`() = runTest {
+        val (viewModel, fakeRouteTracker, fakeRouteRepository) = createViewModel()
 
         viewModel.onStartTrackPathClick()
 
         val startedRouteId = fakeRouteRepository.routes.keys.single()
-        assertEquals(expected = startedRouteId, actual = fakeLocationService.lastStartedRouteId)
-        assertEquals(expected = startedRouteId, actual = viewModel.state.value.ongoingRouteId)
+        assertEquals(expected = TrackingState.Tracking(startedRouteId), actual = fakeRouteTracker.state.value)
+        assertTrue(actual = viewModel.state.value.isTracking)
+        assertTrue(actual = viewModel.state.value.isStreamLoading) // no photos yet
     }
 
     @Test
     fun `a second tap on start while the route is being created does nothing`() = runTest {
         val routeCreation = CompletableDeferred<Unit>()
-        val (viewModel, fakeLocationService, fakeRouteRepository) = createViewModel(
+        val (viewModel, fakeRouteTracker, fakeRouteRepository) = createViewModel(
             routeRepositoryFake = RouteRepositoryFake(beforeStartRoute = { routeCreation.await() })
         )
 
@@ -70,43 +87,110 @@ class ActivePathViewModelTest {
         routeCreation.complete(Unit)
 
         assertEquals(expected = setOf(RouteId(1)), actual = fakeRouteRepository.routes.keys)
-        assertEquals(expected = listOf(RouteId(1)), actual = fakeLocationService.startedRouteIds)
+        assertEquals(expected = listOf(RouteId(1)), actual = fakeRouteTracker.startedRouteIds)
     }
 
     @Test
     fun `a tap on start while a route is tracked does nothing`() = runTest {
-        val (viewModel, fakeLocationService, fakeRouteRepository) = createViewModel()
+        val (viewModel, fakeRouteTracker, fakeRouteRepository) = createViewModel()
         viewModel.onStartTrackPathClick()
 
         viewModel.onStartTrackPathClick()
 
         assertEquals(expected = setOf(RouteId(1)), actual = fakeRouteRepository.routes.keys)
-        assertEquals(expected = listOf(RouteId(1)), actual = fakeLocationService.startedRouteIds)
+        assertEquals(expected = listOf(RouteId(1)), actual = fakeRouteTracker.startedRouteIds)
     }
 
     @Test
     fun `start works again after the previous route is done`() = runTest {
-        val (viewModel, fakeLocationService, _) = createViewModel()
+        val (viewModel, fakeRouteTracker, _) = createViewModel()
         viewModel.onStartTrackPathClick()
         viewModel.onStopTrackPathClick()
         viewModel.onAction(ActivePathViewModel.Action.OnDiscardRouteClick)
 
         viewModel.onStartTrackPathClick()
 
-        assertEquals(expected = listOf(RouteId(1), RouteId(2)), actual = fakeLocationService.startedRouteIds)
+        assertEquals(expected = listOf(RouteId(1), RouteId(2)), actual = fakeRouteTracker.startedRouteIds)
     }
 
     @Test
-    fun `when stop button is clicked then finishes the route and shows NameRouteDialog`() = runTest {
-        val (viewModel, fakeLocationService, fakeRouteRepository) = createViewModel()
+    fun `when stop button is clicked then stops tracking, finishes the route and shows NameRouteDialog`() = runTest {
+        val (viewModel, fakeRouteTracker, fakeRouteRepository) = createViewModel()
         viewModel.onStartTrackPathClick()
 
         viewModel.onStopTrackPathClick()
 
-        assertTrue(actual = fakeLocationService.stopTrackingCalled)
+        assertEquals(expected = TrackingState.Idle, actual = fakeRouteTracker.state.value)
         // Finished before the user names it, so the route is kept whatever they do with the dialog.
         assertEquals(expected = now, actual = fakeRouteRepository.routes.getValue(RouteId(1)).finishedAt)
         assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
+        assertFalse(actual = viewModel.state.value.isTracking)
+    }
+
+    @Test
+    fun `a second tap on stop before tracking has stopped does nothing`() = runTest {
+        // The service stops a moment after Stop, so a quick second tap still finds a Stop button.
+        val (viewModel, fakeRouteTracker, _) = createViewModel(
+            routeTrackerFake = RouteTrackerFake(reportsStopRightAway = false)
+        )
+        viewModel.onStartTrackPathClick()
+        viewModel.onStopTrackPathClick()
+
+        viewModel.onStopTrackPathClick()
+
+        assertEquals(expected = 1, actual = fakeRouteTracker.stopRequests)
+        assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
+    }
+
+    @Test
+    fun `shows the photos of the tracked route as they are found`() = runTest {
+        val (viewModel, _, fakeRouteRepository) = createViewModel()
+        viewModel.onStartTrackPathClick()
+
+        fakeRouteRepository.emitPhotos(RouteId(1), photos)
+
+        assertEquals(expected = photos, actual = viewModel.state.value.photos)
+        assertFalse(actual = viewModel.state.value.isStreamLoading)
+    }
+
+    @Test
+    fun `after stop the photos stay on screen while NameRouteDialog is open`() = runTest {
+        val (viewModel, _, fakeRouteRepository) = createViewModel()
+        viewModel.onStartTrackPathClick()
+        fakeRouteRepository.emitPhotos(RouteId(1), photos)
+
+        viewModel.onStopTrackPathClick()
+
+        assertTrue(actual = viewModel.state.value.shouldShowNameRouteDialog)
+        assertEquals(expected = photos, actual = viewModel.state.value.photos)
+    }
+
+    @Test
+    fun `typing a route name keeps the same photos list`() = runTest {
+        val (viewModel, _, fakeRouteRepository) = createViewModel()
+        viewModel.onStartTrackPathClick()
+        fakeRouteRepository.emitPhotos(RouteId(1), photos)
+        viewModel.onStopTrackPathClick()
+        val photosBeforeTyping = viewModel.state.value.photos
+
+        viewModel.onRouteNameChange(newRouteName = "Acropolis walk")
+
+        assertSame(expected = photosBeforeTyping, actual = viewModel.state.value.photos)
+    }
+
+    @Test
+    fun `when tracking stops without a tap on stop then clears the stream and shows no dialog`() = runTest {
+        // e.g. the service stops because location updates can't be started
+        val (viewModel, fakeRouteTracker, fakeRouteRepository) = createViewModel()
+        viewModel.onStartTrackPathClick()
+        fakeRouteRepository.emitPhotos(RouteId(1), photos)
+
+        fakeRouteTracker.report(TrackingState.Idle)
+
+        val state = viewModel.state.value
+        assertFalse(actual = state.isTracking)
+        assertTrue(actual = state.photos.isEmpty())
+        assertFalse(actual = state.shouldShowNameRouteDialog)
     }
 
     @Test
@@ -122,6 +206,7 @@ class ActivePathViewModelTest {
     fun `when confirm in NameRouteDialog is clicked then names the route and clears state`() = runTest {
         val (viewModel, _, fakeRouteRepository) = createViewModel()
         viewModel.onStartTrackPathClick()
+        fakeRouteRepository.emitPhotos(RouteId(1), photos)
         viewModel.onStopTrackPathClick()
         viewModel.onRouteNameChange(newRouteName = "  My Cool Route ")
 
@@ -132,10 +217,9 @@ class ActivePathViewModelTest {
         assertEquals(expected = now, actual = route.finishedAt)
 
         val state = viewModel.state.value
-        assertNull(actual = state.ongoingRouteId)
         assertFalse(actual = state.shouldShowNameRouteDialog)
         assertEquals(expected = "", actual = state.routeNameInput)
-        assertEquals(expected = persistentListOf<Any>(), actual = state.photos)
+        assertTrue(actual = state.photos.isEmpty())
         assertTrue(actual = state.shouldShowSnackbarRouteSavedConfirmation)
     }
 
@@ -175,6 +259,7 @@ class ActivePathViewModelTest {
     fun `when discard in NameRouteDialog is clicked then deletes the route and clears state`() = runTest {
         val (viewModel, _, fakeRouteRepository) = createViewModel()
         viewModel.onStartTrackPathClick()
+        fakeRouteRepository.emitPhotos(RouteId(1), photos)
         viewModel.onStopTrackPathClick()
 
         viewModel.onAction(ActivePathViewModel.Action.OnDiscardRouteClick)
@@ -182,35 +267,45 @@ class ActivePathViewModelTest {
         assertTrue(actual = fakeRouteRepository.routes.isEmpty())
 
         val state = viewModel.state.value
-        assertNull(actual = state.ongoingRouteId)
         assertFalse(actual = state.shouldShowNameRouteDialog)
-        assertEquals(expected = persistentListOf<Any>(), actual = state.photos)
+        assertTrue(actual = state.photos.isEmpty())
         assertFalse(actual = state.shouldShowSnackbarRouteSavedConfirmation)
     }
 
     @Test
-    fun `tracking state updates from location service are reflected in viewmodel state`() = runTest {
-        val (viewModel, fakeLocationService, _) = createViewModel()
+    fun `when the name dialog closes then its photos go in the same state update`() = runTest {
+        val (viewModel, _, fakeRouteRepository) = createViewModel()
+        viewModel.onStartTrackPathClick()
+        fakeRouteRepository.emitPhotos(RouteId(1), photos)
+        viewModel.onStopTrackPathClick()
+        viewModel.onRouteNameChange(newRouteName = "My Cool Route")
 
         viewModel.state.test {
-            // initial state
-            val initial = awaitItem()
-            assertFalse(actual = initial.isTracking)
-            assertNull(actual = initial.ongoingRouteId)
+            assertEquals(expected = photos, actual = awaitItem().photos) // the dialog is open over the photos
 
-            // emit running state
-            val activeRouteId = RouteId(99)
-            fakeLocationService.emitTrackingState(TrackingState(isRunning = true, activeRouteId = activeRouteId))
+            viewModel.onConfirmNameRouteDialogClick()
 
-            val runningState = awaitItem()
-            assertTrue(actual = runningState.isTracking)
-            assertEquals(expected = activeRouteId, actual = runningState.ongoingRouteId)
+            // The database query for the photos stops a moment after the dialog closes.
+            // No state in between may show the photos of a route that's no longer on screen.
+            val closed = awaitItem()
+            assertFalse(actual = closed.shouldShowNameRouteDialog)
+            assertTrue(actual = closed.photos.isEmpty())
+            expectNoEvents()
+        }
+    }
 
-            // emit stopped state
-            fakeLocationService.emitTrackingState(TrackingState(isRunning = false, activeRouteId = null))
+    @Test
+    fun `tracking state reported by the tracker is reflected in viewmodel state`() = runTest {
+        val (viewModel, fakeRouteTracker, _) = createViewModel()
 
-            val stoppedState = awaitItem()
-            assertFalse(actual = stoppedState.isTracking)
+        viewModel.state.test {
+            assertFalse(actual = awaitItem().isTracking)
+
+            fakeRouteTracker.report(TrackingState.Tracking(RouteId(99)))
+            assertTrue(actual = awaitItem().isTracking)
+
+            fakeRouteTracker.report(TrackingState.Idle)
+            assertFalse(actual = awaitItem().isTracking)
         }
     }
 
@@ -237,14 +332,13 @@ class ActivePathViewModelTest {
     // --- Helper classes and setup ---
 
     private fun createViewModel(
+        routeTrackerFake: RouteTrackerFake = RouteTrackerFake(),
         routeRepositoryFake: RouteRepositoryFake = RouteRepositoryFake()
-    ): Triple<ActivePathViewModel, LocationServiceManagerFake, RouteRepositoryFake> {
-        val locationServiceManagerFake = LocationServiceManagerFake()
-
+    ): Triple<ActivePathViewModel, RouteTrackerFake, RouteRepositoryFake> {
         val activePathViewModel = ActivePathViewModel(
-            locationServiceManager = locationServiceManagerFake,
-            startRouteUseCase = StartRouteUseCase(routeRepositoryFake),
-            finishRouteUseCase = FinishRouteUseCase(routeRepositoryFake, fixedClock),
+            routeTracker = routeTrackerFake,
+            startTrackingUseCase = StartTrackingUseCase(routeRepositoryFake, routeTrackerFake),
+            stopTrackingUseCase = StopTrackingUseCase(routeTrackerFake, routeRepositoryFake, fixedClock),
             renameRouteUseCase = RenameRouteUseCase(routeRepositoryFake),
             deleteRouteWithPhotoMetadataUseCase = DeleteRouteWithPhotoMetadataUseCase(routeRepositoryFake),
             observeRouteWithPhotoMetadataUseCase = object : ObserveRouteWithPhotoMetadataContract {
@@ -254,29 +348,41 @@ class ActivePathViewModelTest {
             }
         )
 
-        return Triple(activePathViewModel, locationServiceManagerFake, routeRepositoryFake)
+        return Triple(activePathViewModel, routeTrackerFake, routeRepositoryFake)
     }
 
-    class LocationServiceManagerFake : LocationServiceManager {
-        private val _trackingState = MutableStateFlow(TrackingState())
-        override val trackingState: StateFlow<TrackingState> = _trackingState.asStateFlow()
+    private fun photo(id: Long) = PhotoMetadata(
+        id = id,
+        placeId = "place_$id",
+        photoUri = "https://example.com/photo_$id.jpg",
+        location = Coordinates(latitude = 0.0, longitude = 0.0)
+    )
+
+    // Reports what the service would: tracking starts when asked, and stops when asked.
+    class RouteTrackerFake(
+        initialState: TrackingState = TrackingState.Idle,
+        // false: the service reports Idle a moment after Stop, when the test calls report(Idle).
+        private val reportsStopRightAway: Boolean = true
+    ) : RouteTracker {
+        private val _state = MutableStateFlow(initialState)
+        override val state: StateFlow<TrackingState> = _state.asStateFlow()
 
         val startedRouteIds = mutableListOf<RouteId>()
-        val lastStartedRouteId: RouteId? get() = startedRouteIds.lastOrNull()
-        var stopTrackingCalled = false
+        var stopRequests = 0
+            private set
 
-        override fun startTracking(routeId: RouteId) {
+        override fun start(routeId: RouteId) {
             startedRouteIds += routeId
-            _trackingState.update { it.copy(isRunning = true, activeRouteId = routeId) }
+            _state.value = TrackingState.Tracking(routeId)
         }
 
-        override fun stopTracking() {
-            stopTrackingCalled = true
-            _trackingState.update { it.copy(isRunning = false) }
+        override fun stop() {
+            stopRequests++
+            if (reportsStopRightAway) _state.value = TrackingState.Idle
         }
 
-        fun emitTrackingState(state: TrackingState) {
-            _trackingState.value = state
+        fun report(state: TrackingState) {
+            _state.value = state
         }
     }
 
@@ -290,6 +396,14 @@ class ActivePathViewModelTest {
 
         val routes = mutableMapOf<RouteId, StoredRoute>()
         private var lastRouteId = 0L
+        private val photosByRoute = mutableMapOf<RouteId, MutableStateFlow<List<PhotoMetadata>>>()
+
+        // Like the service saving the photos it finds for the route.
+        fun emitPhotos(routeId: RouteId, photos: List<PhotoMetadata>) {
+            photosOf(routeId).value = photos
+        }
+
+        private fun photosOf(routeId: RouteId) = photosByRoute.getOrPut(routeId) { MutableStateFlow(emptyList()) }
 
         override suspend fun startRoute(): RouteId {
             beforeStartRoute()
@@ -299,7 +413,9 @@ class ActivePathViewModelTest {
         }
 
         override suspend fun finishRoute(routeId: RouteId, finishedAt: Instant, metadata: Map<String, String>) {
-            routes[routeId]?.let { route -> routes[routeId] = route.copy(finishedAt = finishedAt) }
+            // Like the real query: a finished route keeps its first finish time.
+            val route = routes[routeId] ?: return
+            if (route.finishedAt == null) routes[routeId] = route.copy(finishedAt = finishedAt)
         }
 
         override suspend fun renameRoute(routeId: RouteId, name: String) {
@@ -311,15 +427,15 @@ class ActivePathViewModelTest {
         }
 
         override fun observeRouteWithPhotoMetadataById(routeId: RouteId): Flow<RouteWithPhotoMetadata> {
-            return flowOf(
+            return photosOf(routeId).map { photos ->
                 RouteWithPhotoMetadata(
                     routeId = routeId,
                     displayName = "Test",
                     createdAt = Instant.parse("2025-01-01T00:00:00Z"),
                     metadata = emptyMap(),
-                    photoMetadata = emptyList()
+                    photoMetadata = photos
                 )
-            )
+            }
         }
 
         override fun observeRoutesWithPhotoMetadata(): Flow<List<RouteWithPhotoMetadata>> {

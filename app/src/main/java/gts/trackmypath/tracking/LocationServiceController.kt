@@ -1,4 +1,4 @@
-package gts.trackmypath.ui.service
+package gts.trackmypath.tracking
 
 import android.content.Context
 import android.content.Intent

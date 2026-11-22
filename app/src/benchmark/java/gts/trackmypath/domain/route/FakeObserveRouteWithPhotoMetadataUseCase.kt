@@ -1,5 +1,6 @@
 package gts.trackmypath.domain.route
 
+import gts.trackmypath.domain.Coordinates
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -18,7 +19,7 @@ class FakeObserveRouteWithPhotoMetadataUseCase @Inject constructor() : ObserveRo
                 id = index.toLong(),
                 placeId = "fake_place_$index",
                 photoUri = "https://picsum.photos/seed/$index/400/200",
-                location = PhotoMetadata.Location(0.0, 0.0),
+                location = Coordinates(0.0, 0.0),
                 generativeSummary = "Fake Image $index",
                 neighborhoodSummary = "Fake Neighborhood $index"
             )
@@ -42,7 +43,7 @@ class FakeObserveRouteWithPhotoMetadataUseCase @Inject constructor() : ObserveRo
                 id = nextId,
                 placeId = "fake_place_$nextId",
                 photoUri = "https://picsum.photos/seed/$nextId/400/200",
-                location = PhotoMetadata.Location(0.0, 0.0),
+                location = Coordinates(0.0, 0.0),
                 generativeSummary = "Fake Image $nextId",
                 neighborhoodSummary = "Fake Neighborhood $nextId"
             )

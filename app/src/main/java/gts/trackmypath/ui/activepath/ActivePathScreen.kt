@@ -56,7 +56,6 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import gts.trackmypath.R
 import gts.trackmypath.domain.photometadata.PhotoMetadata
-import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.ui.composables.NameRouteDialog
 import gts.trackmypath.ui.composables.PhotoCard
 import gts.trackmypath.ui.mockdata.photoMetadataMock
@@ -370,8 +369,7 @@ private fun ActivePathStartedPreview() {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             ActivePathContent(
                 state = ActivePathViewModel.State(
-                    isLocationServiceRunning = true,
-                    ongoingRouteId = RouteId(1),
+                    isTracking = true,
                     photos = photoMetadataMock
                 ),
                 onAction = {},
@@ -399,8 +397,7 @@ private fun ActivePathLoadingPreview() {
     TrackMyPathV2Theme {
         ActivePathContent(
             state = ActivePathViewModel.State(
-                isLocationServiceRunning = true,
-                ongoingRouteId = RouteId(1),
+                isTracking = true,
                 photos = persistentListOf()
             ),
             onAction = {},

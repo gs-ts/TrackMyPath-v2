@@ -8,10 +8,11 @@ import gts.trackmypath.data.database.photometadata.PhotoMetadataDao
 import gts.trackmypath.data.database.photometadata.PhotoMetadataEntity
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.data.repository.PhotoMetadataRepositoryImpl
+import gts.trackmypath.domain.Coordinates
 import gts.trackmypath.domain.PhotoMetadataUnavailableException
 import gts.trackmypath.domain.PlacesUnavailableException
 import gts.trackmypath.domain.PlaceIdInvalidException
-import gts.trackmypath.domain.photometadata.PhotoMetadata as DomainPhotoMetadata
+import gts.trackmypath.domain.filters.PlaceFilter
 import gts.trackmypath.domain.route.RouteId
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -50,13 +51,32 @@ class PhotoMetadataRepositoryTest {
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
                 routeId = RouteId(id = 1),
-                location = DomainPhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+                location = Coordinates(latitude = 0.0, longitude = 0.0),
+                placeFilters = emptySet()
             )
 
             assertTrue(actual = result.isSuccess)
             // Verify it grabbed the first one from our fake list
             assertTrue(actual = photoMetadataDao.existsForRoute(1L, "101"))
         }
+
+    @Test
+    fun `fetchPhotoMetadataForLocation searches only the place types of the chosen filters`() = runTest(testDispatcher) {
+        val googlePlacesClient = GooglePlacesClientFake()
+        photoMetadataRepository =
+            PhotoMetadataRepositoryImpl(googlePlacesClient, photoMetadataDao, testDispatcher, backgroundScope)
+
+        photoMetadataRepository.fetchPhotoMetadataForLocation(
+            routeId = RouteId(id = 1),
+            location = Coordinates(latitude = 0.0, longitude = 0.0),
+            placeFilters = setOf(PlaceFilter.CULTURE, PlaceFilter.SHOPPING)
+        )
+
+        assertEquals(
+            expected = (PlaceFilter.CULTURE.types + PlaceFilter.SHOPPING.types).sorted(),
+            actual = googlePlacesClient.lastSearchedPlaceTypes?.sorted()
+        )
+    }
 
     @Test
     fun `fetchPhotoMetadataForLocation returns error when searchNearbyPlaces returns empty list`() = runTest(testDispatcher) {
@@ -70,7 +90,8 @@ class PhotoMetadataRepositoryTest {
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
                 routeId = RouteId(id = 1),
-                location = DomainPhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+                location = Coordinates(latitude = 0.0, longitude = 0.0),
+                placeFilters = emptySet()
             )
 
             assertTrue(actual = result.isFailure)
@@ -105,7 +126,8 @@ class PhotoMetadataRepositoryTest {
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
                 routeId = RouteId(id = 1),
-                location = DomainPhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+                location = Coordinates(latitude = 0.0, longitude = 0.0),
+                placeFilters = emptySet()
             )
 
             assertTrue(actual = result.isSuccess)
@@ -152,7 +174,8 @@ class PhotoMetadataRepositoryTest {
 
             val result = photoMetadataRepository.fetchPhotoMetadataForLocation(
                 routeId = RouteId(id = 1),
-                location = DomainPhotoMetadata.Location(latitude = 0.0, longitude = 0.0)
+                location = Coordinates(latitude = 0.0, longitude = 0.0),
+                placeFilters = emptySet()
             )
 
             assertTrue(actual = result.isFailure)
@@ -370,8 +393,10 @@ internal class PhotoMetadataDaoFake : PhotoMetadataDao {
 internal open class GooglePlacesClientFake(private val withException: Boolean = false) : GooglePlacesClient {
 
     var fetchPhotoUriByPlaceIdCount = 0
+    var lastSearchedPlaceTypes: List<String>? = null
 
-    override suspend fun searchNearbyPlaces(latLng: LatLng): List<Place> {
+    override suspend fun searchNearbyPlaces(latLng: LatLng, placeTypes: List<String>): List<Place> {
+        lastSearchedPlaceTypes = placeTypes
         if (withException) return emptyList()
 
         // Return a list of multiple places to test both the happy path and the iteration logic
