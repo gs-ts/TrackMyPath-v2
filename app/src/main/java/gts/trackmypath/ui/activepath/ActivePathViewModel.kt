@@ -1,5 +1,7 @@
 package gts.trackmypath.ui.activepath
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -46,8 +48,11 @@ class ActivePathViewModel @Inject constructor(
     // The tracking state comes from routeTracker, and the photos from the database.
     private val popups = MutableStateFlow(Popups())
 
+    // The name typed in the name dialog. The text field edits it directly, and Confirm reads it.
+    val routeName = TextFieldState()
+
     // The photos of the route on screen. The database query restarts only when that route changes,
-    // not on every popup change (e.g. typing a name).
+    // not on every popup change (e.g. opening the filter sheet).
     @OptIn(ExperimentalCoroutinesApi::class)
     private val routePhotos: Flow<RoutePhotos?> = combine(
         routeTracker.state,
@@ -96,7 +101,6 @@ class ActivePathViewModel @Inject constructor(
             Action.OnStopTrackPathClick -> onStopTrackPathClick()
             Action.OnPlaceFiltersClick -> onPlaceFilterClick()
             Action.OnClosePlaceFilterBottomSheet -> onClosePlaceFilterBottomSheet()
-            is Action.OnRouteNameChange -> onRouteNameChange(action.routeName)
             Action.OnConfirmNameRouteDialogClick -> onConfirmNameRouteDialogClick()
             Action.OnDiscardRouteClick -> onDiscardRouteClick()
             Action.HideSnackbarRouteSavedConfirmation -> hideSnackbarRouteSavedConfirmation()
@@ -138,26 +142,24 @@ class ActivePathViewModel @Inject constructor(
         popups.update { popups -> popups.copy(shouldShowPlaceFilterBottomSheet = false) }
     }
 
-    fun onRouteNameChange(newRouteName: String) {
-        popups.update { popups -> popups.copy(routeNameInput = newRouteName) }
-    }
-
     fun onConfirmNameRouteDialogClick() {
         // The Confirm button is enabled only for a valid name, and the dialog is shown only for a route.
-        val routeName = normalizeRouteName(popups.value.routeNameInput) ?: return
+        val name = normalizeRouteName(routeName.text.toString()) ?: return
         val routeId = popups.value.routeAwaitingName ?: return
         popups.update { popups ->
-            popups.withNameRouteDialogClosed().copy(shouldShowSnackbarRouteSavedConfirmation = true)
+            popups.copy(routeAwaitingName = null, shouldShowSnackbarRouteSavedConfirmation = true)
         }
+        routeName.clearText()
         viewModelScope.launch {
-            renameRouteUseCase(routeId = routeId, name = routeName)
+            renameRouteUseCase(routeId = routeId, name = name)
         }
     }
 
     private fun onDiscardRouteClick() {
         val routeId = popups.value.routeAwaitingName ?: return
         // Close the dialog first, so the screen stops showing the route before it's deleted.
-        popups.update { popups -> popups.withNameRouteDialogClosed() }
+        popups.update { popups -> popups.copy(routeAwaitingName = null) }
+        routeName.clearText()
         viewModelScope.launch {
             deleteRouteWithPhotoMetadataUseCase(routeId = routeId)
         }
@@ -184,8 +186,6 @@ class ActivePathViewModel @Inject constructor(
             popups = popups,
         )
 
-    private fun Popups.withNameRouteDialogClosed() = copy(routeAwaitingName = null, routeNameInput = "")
-
     private data class RoutePhotos(val routeId: RouteId, val photos: PersistentList<PhotoMetadata>)
 
     data class State(
@@ -202,7 +202,6 @@ class ActivePathViewModel @Inject constructor(
     data class Popups(
         // Set by Stop: the stopped route. The name dialog is open while it's set.
         val routeAwaitingName: RouteId? = null,
-        val routeNameInput: String = "",
         val shouldShowPlaceFilterBottomSheet: Boolean = false,
         val shouldShowSnackbarRouteSavedConfirmation: Boolean = false,
     ) {
@@ -219,8 +218,6 @@ class ActivePathViewModel @Inject constructor(
         data object OnPlaceFiltersClick : Action
 
         data object OnClosePlaceFilterBottomSheet : Action
-
-        data class OnRouteNameChange(val routeName: String) : Action
 
         data object OnConfirmNameRouteDialogClick : Action
 

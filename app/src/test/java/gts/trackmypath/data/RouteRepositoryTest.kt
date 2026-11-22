@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -32,7 +33,12 @@ class RouteRepositoryTest {
     fun setup() {
         routeDao = RouteDaoFake()
         // The test scope stands in for the application scope, so runTest runs its work and waits for it.
-        routeRepository = RouteRepositoryImpl(routeDao, applicationScope = testScope)
+        // Unconfined, so the flows subscribe to the DAO fake's flows at once, as they did without flowOn.
+        routeRepository = RouteRepositoryImpl(
+            routeDao,
+            applicationScope = testScope,
+            defaultDispatcher = UnconfinedTestDispatcher(testScope.testScheduler),
+        )
     }
 
     @Test
@@ -80,6 +86,8 @@ class RouteRepositoryTest {
     @Test
     fun `deleteRoute removes route by id`() = testScope.runTest {
         routeRepository.deleteRoute(RouteId(1L))
+
+        assertEquals(expected = 1L, actual = routeDao.deletedRouteId)
     }
 
     @Test
@@ -203,6 +211,21 @@ class RouteRepositoryTest {
             assertEquals(expected = 100L, actual = route1?.photoMetadata?.first()?.id)
             assertEquals(expected = 200L, actual = route2?.photoMetadata?.first()?.id)
 
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `observeRoutesWithPhotoMetadata skips a re-emission that changed nothing`() = testScope.runTest {
+        val route = RouteEntity(routeId = 1L, displayName = "Route 1", createdAt = 1000L)
+        val routeMap = mapOf(route to emptyList<PhotoMetadataEntity>())
+
+        routeRepository.observeRoutesWithPhotoMetadata().test {
+            routeDao.allRoutesStream.emit(routeMap)
+            assertEquals(expected = "Route 1", actual = awaitItem().single().displayName)
+
+            // e.g. Room re-runs the query after a write to another route's photos
+            routeDao.allRoutesStream.emit(routeMap)
             expectNoEvents()
         }
     }

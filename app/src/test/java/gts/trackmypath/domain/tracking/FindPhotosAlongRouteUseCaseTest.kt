@@ -3,6 +3,7 @@ package gts.trackmypath.domain.tracking
 import app.cash.turbine.test
 import gts.trackmypath.domain.Coordinates
 import gts.trackmypath.domain.LocationUnavailableException
+import gts.trackmypath.domain.PlacesUnavailableException
 import gts.trackmypath.domain.filters.FilterPreferencesDataStore
 import gts.trackmypath.domain.filters.PlaceFilter
 import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
@@ -76,19 +77,30 @@ class FindPhotosAlongRouteUseCaseTest {
     }
 
     @Test
-    fun `a failed search is reported and the next location searches again`() = runTest {
-        val failure = IllegalStateException("Disk full")
+    fun `a search that finds nothing is reported and the next location searches again`() = runTest {
+        val nothingNearby = Result.failure<Unit>(PlacesUnavailableException("No places available."))
         photoMetadataRepository.onSearch = { search ->
-            if (search.location == firstLocation) throw failure
-            Result.success(Unit)
+            if (search.location == firstLocation) nothingNearby else Result.success(Unit)
         }
 
         findPhotosAlongRoute(routeId).test {
             locationSource.emit(firstLocation)
-            assertEquals(expected = Result.failure(failure), actual = awaitItem())
+            assertEquals(expected = nothingNearby, actual = awaitItem())
 
             locationSource.emit(secondLocation)
             assertEquals(expected = Result.success(Unit), actual = awaitItem())
+        }
+    }
+
+    @Test
+    fun `an unexpected error ends the flow, so tracking stops`() = runTest {
+        photoMetadataRepository.onSearch = { error("A bug in the search") }
+
+        findPhotosAlongRoute(routeId).test {
+            locationSource.emit(firstLocation)
+
+            // Only the type: with stack trace recovery on, the test can get a copy of the exception.
+            assertIs<IllegalStateException>(awaitError())
         }
     }
 

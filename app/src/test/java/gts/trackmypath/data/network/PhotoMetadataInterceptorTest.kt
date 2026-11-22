@@ -2,6 +2,8 @@ package gts.trackmypath.data.network
 
 import android.content.ContextWrapper
 import coil3.intercept.Interceptor
+import coil3.network.HttpException
+import coil3.network.NetworkResponse
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
@@ -82,7 +84,7 @@ class PhotoMetadataInterceptorTest {
         val errorResult = ErrorResult(
             image = null,
             request = initialRequest, 
-            throwable = RuntimeException("HTTP 403 Forbidden")
+            throwable = HttpException(NetworkResponse(code = 403))
         )
         val successResult = SuccessResult(
             image = mockImage(),
@@ -205,7 +207,7 @@ class PhotoMetadataInterceptorTest {
         val errorResult = ErrorResult(
             image = null,
             request = initialRequest, 
-            throwable = RuntimeException("HTTP 403 Forbidden")
+            throwable = HttpException(NetworkResponse(code = 403))
         )
 
         var refreshCalled = false

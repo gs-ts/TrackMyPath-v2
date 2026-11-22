@@ -11,6 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.maxLength
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
@@ -19,6 +24,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -42,12 +50,15 @@ import gts.trackmypath.ui.theme.TrackMyPathV2Theme
  */
 @Composable
 internal fun NameRouteDialog(
-    routeName: String,
-    onRouteNameChange: (String) -> Unit,
+    routeName: TextFieldState,
     onConfirmClick: () -> Unit,
     onDismissClick: (() -> Unit)?,
     onDiscardClick: (() -> Unit)? = null,
 ) {
+    // Recomposes the Confirm button only when the name becomes valid or invalid, not on every keystroke.
+    val isRouteNameValid by remember(routeName) {
+        derivedStateOf { normalizeRouteName(routeName.text.toString()) != null }
+    }
     Dialog(
         onDismissRequest = { onDismissClick?.invoke() },
         properties = DialogProperties(
@@ -76,15 +87,12 @@ internal fun NameRouteDialog(
                     DiscardRouteWarning()
                 }
                 OutlinedTextField(
+                    state = routeName,
                     modifier = Modifier
                         .fillMaxWidth(),
-                    singleLine = true,
-                    value = routeName,
-                    onValueChange = { newValue ->
-                        if (newValue.length <= ROUTE_NAME_MAX_LENGTH) {
-                            onRouteNameChange(newValue)
-                        }
-                    },
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    // Rejects typing or pasting past the limit, and tells accessibility services the limit.
+                    inputTransformation = InputTransformation.maxLength(ROUTE_NAME_MAX_LENGTH),
                     label = {
                         Text(text = "Name")
                     }
@@ -113,7 +121,7 @@ internal fun NameRouteDialog(
                     TextButton(
                         onClick = { onConfirmClick() },
                         modifier = Modifier.padding(8.dp),
-                        enabled = normalizeRouteName(routeName) != null,
+                        enabled = isRouteNameValid,
                     ) {
                         Text("Confirm")
                     }
@@ -150,8 +158,7 @@ private fun NameRouteDialogPreview() {
     TrackMyPathV2Theme {
         Box(modifier = Modifier.fillMaxSize()) {
             NameRouteDialog(
-                routeName = "my route",
-                onRouteNameChange = {},
+                routeName = rememberTextFieldState(initialText = "my route"),
                 onConfirmClick = {},
                 onDismissClick = null,
                 onDiscardClick = {},

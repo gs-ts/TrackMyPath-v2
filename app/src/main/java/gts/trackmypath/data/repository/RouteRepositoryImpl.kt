@@ -5,13 +5,16 @@ import gts.trackmypath.data.database.photometadata.toDomain
 import gts.trackmypath.data.database.route.RouteDao
 import gts.trackmypath.data.database.route.RouteEntity
 import gts.trackmypath.di.ApplicationScope
+import gts.trackmypath.di.DefaultDispatcher
 import gts.trackmypath.domain.route.RouteId
 import gts.trackmypath.domain.route.RouteRepository
 import gts.trackmypath.domain.route.RouteWithPhotoMetadata
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import javax.inject.Inject
@@ -19,7 +22,8 @@ import kotlin.time.Instant
 
 class RouteRepositoryImpl @Inject constructor(
     private val routeDao: RouteDao,
-    @param:ApplicationScope private val applicationScope: CoroutineScope
+    @param:ApplicationScope private val applicationScope: CoroutineScope,
+    @param:DefaultDispatcher private val defaultDispatcher: CoroutineDispatcher,
 ) : RouteRepository {
 
     override suspend fun startRoute(): RouteId {
@@ -90,6 +94,7 @@ class RouteRepositoryImpl @Inject constructor(
                 )
             }
             .distinctUntilChanged()
+            .flowOn(defaultDispatcher) // Room re-emits after every write, e.g. each new photo
     }
 
     override fun observeRoutesWithPhotoMetadata(): Flow<List<RouteWithPhotoMetadata>> {
@@ -110,5 +115,9 @@ class RouteRepositoryImpl @Inject constructor(
                     )
                 }
             }
+            // Room re-emits after every write to these tables, e.g. each new photo while tracking.
+            // Map off the main thread, and skip results that didn't change.
+            .distinctUntilChanged()
+            .flowOn(defaultDispatcher)
     }
 }

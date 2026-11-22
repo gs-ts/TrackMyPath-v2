@@ -369,10 +369,6 @@ internal class PhotoMetadataDaoFake : PhotoMetadataDao {
         return savedPhotos.any { it.routeId == routeId && it.placeId == placeId }
     }
 
-    override suspend fun deleteAll() {
-        savedPhotos.clear()
-    }
-
     override suspend fun getPhotoUriByPlaceId(placeId: String): String? {
         return savedPhotos.find { it.placeId == placeId }?.photoUri
     }

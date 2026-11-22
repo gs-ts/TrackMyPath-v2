@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -75,6 +77,7 @@ fun PastRoutesScreen(
     } else {
         PastRoutesContent(
             state = state,
+            routeName = viewModel.routeName,
             onRouteCardClick = onNavigateToPastRouteDetail,
             onAction = viewModel::onAction,
             onBackClick = onBackClick
@@ -87,20 +90,20 @@ fun PastRoutesScreen(
 private fun PastRoutesContent(
     modifier: Modifier = Modifier,
     state: PastRoutesViewModel.State,
+    routeName: TextFieldState,
     onRouteCardClick: (RouteId) -> Unit,
     onAction: (PastRoutesViewModel.Action) -> Unit,
     onBackClick: () -> Unit,
 ) {
-    if (state.shouldShowRenameRouteDialog) {
+    if (state.popups.shouldShowRenameRouteDialog) {
         NameRouteDialog(
-            routeName = state.routeNameInput,
-            onRouteNameChange = { onAction(PastRoutesViewModel.Action.OnRouteNameChange(newName = it)) },
+            routeName = routeName,
             onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmNameRouteDialogClick) },
             onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissNameRouteDialogClick) }
         )
     }
 
-    if (state.shouldShowDeletePastRouteDialog) {
+    if (state.popups.shouldShowDeletePastRouteDialog) {
         DeletePastRouteDialog(
             onConfirmClick = { onAction(PastRoutesViewModel.Action.OnConfirmDeleteRouteClick) },
             onDismissClick = { onAction(PastRoutesViewModel.Action.OnDismissDeleteRouteDialogClick) }
@@ -117,8 +120,8 @@ private fun PastRoutesContent(
         }
     )
     val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(key1 = state.shouldShowSnackbarRouteDeletedConfirmation) {
-        if (state.shouldShowSnackbarRouteDeletedConfirmation) {
+    LaunchedEffect(key1 = state.popups.shouldShowSnackbarRouteDeletedConfirmation) {
+        if (state.popups.shouldShowSnackbarRouteDeletedConfirmation) {
             try {
                 snackbarHostState.showSnackbar(
                     message = "Route deleted successfully.",
@@ -358,6 +361,7 @@ private fun PastRoutesPreview() {
         CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHandler) {
             PastRoutesContent(
                 state = PastRoutesViewModel.State(routesWithPhotoMetadata = routesWithPhotoMetadataMock),
+                routeName = rememberTextFieldState(),
                 onRouteCardClick = {},
                 onAction = {},
                 onBackClick = {},

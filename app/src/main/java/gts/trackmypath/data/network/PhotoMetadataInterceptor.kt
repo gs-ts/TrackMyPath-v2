@@ -2,11 +2,12 @@ package gts.trackmypath.data.network
 
 import android.util.Log
 import coil3.intercept.Interceptor
+import coil3.network.HttpException
 import coil3.request.ErrorResult
 import coil3.request.ImageResult
 import gts.trackmypath.domain.photometadata.PhotoMetadata
 import gts.trackmypath.domain.photometadata.PhotoMetadataRepository
-import jakarta.inject.Inject
+import javax.inject.Inject
 
 class PhotoMetadataInterceptor @Inject constructor(
     private val repository: PhotoMetadataRepository
@@ -54,12 +55,12 @@ class PhotoMetadataInterceptor @Inject constructor(
         return chain.proceed()
     }
 
-    private fun isUrlExpired(throwable: Throwable): Boolean {
-        // HTTP 403 Forbidden / 404 Not Found are typical for expired signed URLs.
-        val message = throwable.message ?: return false
-        return message.contains("403") ||
-            message.contains("404") ||
-            message.contains("Forbidden") ||
-            message.contains("Not Found")
+    // An expired signed URL answers 403 Forbidden or 404 Not Found. Coil reports any other non-2xx answer
+    // as an HttpException too, and its message is only "HTTP <code>", so check the code, not the message.
+    private fun isUrlExpired(throwable: Throwable): Boolean =
+        throwable is HttpException && throwable.response.code in EXPIRED_URL_CODES
+
+    private companion object {
+        val EXPIRED_URL_CODES = setOf(403, 404)
     }
 }

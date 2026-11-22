@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -74,6 +76,7 @@ fun ActivePathScreen(
 
     ActivePathContent(
         state = state,
+        routeName = viewModel.routeName,
         onAction = viewModel::onAction,
         onNavigateToPastRoutes = onNavigateToPastRoutes
     )
@@ -84,6 +87,7 @@ fun ActivePathScreen(
 private fun ActivePathContent(
     modifier: Modifier = Modifier,
     state: ActivePathViewModel.State,
+    routeName: TextFieldState,
     onAction: (ActivePathViewModel.Action) -> Unit,
     onNavigateToPastRoutes: () -> Unit
 ) {
@@ -124,8 +128,7 @@ private fun ActivePathContent(
 
     if (state.popups.shouldShowNameRouteDialog) {
         NameRouteDialog(
-            routeName = state.popups.routeNameInput,
-            onRouteNameChange = { onAction(ActivePathViewModel.Action.OnRouteNameChange(routeName = it)) },
+            routeName = routeName,
             onConfirmClick = { onAction(ActivePathViewModel.Action.OnConfirmNameRouteDialogClick) },
             onDismissClick = null, // Back and a tap outside do nothing, so the user must name the route or discard it.
             onDiscardClick = { onAction(ActivePathViewModel.Action.OnDiscardRouteClick) },
@@ -372,6 +375,7 @@ private fun ActivePathStartedPreview() {
                     isTracking = true,
                     photos = photoMetadataMock
                 ),
+                routeName = rememberTextFieldState(),
                 onAction = {},
                 onNavigateToPastRoutes = {}
             )
@@ -385,6 +389,7 @@ private fun ActivePathStoppedPreview() {
     TrackMyPathV2Theme {
         ActivePathContent(
             state = ActivePathViewModel.State(photos = persistentListOf()),
+            routeName = rememberTextFieldState(),
             onAction = {},
             onNavigateToPastRoutes = {}
         )
@@ -400,6 +405,7 @@ private fun ActivePathLoadingPreview() {
                 isTracking = true,
                 photos = persistentListOf()
             ),
+            routeName = rememberTextFieldState(),
             onAction = {},
             onNavigateToPastRoutes = {}
         )

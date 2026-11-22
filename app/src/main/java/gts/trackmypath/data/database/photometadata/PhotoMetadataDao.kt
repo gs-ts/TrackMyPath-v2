@@ -14,9 +14,6 @@ interface PhotoMetadataDao {
     @Query("SELECT EXISTS(SELECT 1 FROM photo_metadata WHERE route_id = :routeId AND place_id = :placeId)")
     suspend fun existsForRoute(routeId: Long, placeId: String): Boolean
 
-    @Query("DELETE FROM photo_metadata")
-    suspend fun deleteAll()
-
     @Query("SELECT photo_uri FROM photo_metadata WHERE place_id = :placeId LIMIT 1")
     suspend fun getPhotoUriByPlaceId(placeId: String): String?
 

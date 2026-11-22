@@ -5,7 +5,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import gts.trackmypath.data.LocationProvider
-import gts.trackmypath.data.datastore.FilterPreferencesDataStorImpl
+import gts.trackmypath.data.datastore.FilterPreferencesDataStoreImpl
 import gts.trackmypath.data.network.GooglePlacesClient
 import gts.trackmypath.data.network.GooglePlacesClientImpl
 import gts.trackmypath.data.repository.PhotoMetadataRepositoryImpl
@@ -21,7 +21,7 @@ interface DataModule {
 
     @Binds
     fun bindFilterPreferencesDataStore(
-        filterPreferencesDataStorImpl: FilterPreferencesDataStorImpl
+        filterPreferencesDataStoreImpl: FilterPreferencesDataStoreImpl
     ): FilterPreferencesDataStore
 
     @Binds
